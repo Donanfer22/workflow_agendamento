@@ -1,0 +1,2587 @@
+{
+  "name": "GESTAO DE AGENDA",
+  "nodes": [
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Cancela agendamento existente. Use quando paciente solicitar cancelamento de consulta.",
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "vitorcardosolido@gmail.com",
+          "mode": "list",
+          "cachedResultName": "vitorcardosolido@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', `Apague usando o id do agendamento`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        2992,
+        688
+      ],
+      "id": "db084846-17d3-485b-9c70-036237e3ab7b",
+      "name": "deletar_agenda",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "vKtajF8ftpbBh1dD",
+          "name": "youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Cria novo agendamento na agenda da clínica. Use quando paciente solicitar consulta ou retorno. Agende somente em horario de atendimento, e o tempo de atendimento agende de acordo com o serviço",
+        "calendar": {
+          "__rl": true,
+          "value": "vitorcardosolido@gmail.com",
+          "mode": "list",
+          "cachedResultName": "vitorcardosolido@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', `Data e horário de início da consulta no formato ISO 8601 com timezone de São Paulo. \nFormato: YYYY-MM-DDTHH:mm:ss-03:00\nExemplo: 2024-12-15T14:30:00-03:00 (para 15/12/2024 às 14:30)\nRespeitar horário de funcionamento: Seg-Sáb 8h-18h`, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', `Data e horário de término da consulta no formato ISO 8601 com timezone de São Paulo.\nFormato: YYYY-MM-DDTHH:mm:ss-03:00  \nExemplo: 2024-12-15T15:30:00-03:00 (para 15/12/2024 às 15:30)\nCalcular automaticamente: início + duração do procedimento`, 'string') }}",
+        "additionalFields": {
+          "description": "={{ $('Edit Fields').last().json.id }}",
+          "id": "={{ Date.now().toString() + Math.random().toString(36).substr(2, 3) }}",
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', `Título do evento: Nome do paciente + tipo de consulta`, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        2976,
+        848
+      ],
+      "id": "c9969a52-e5af-4fdf-8c88-67282b8d3012",
+      "name": "criar_agenda",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "vKtajF8ftpbBh1dD",
+          "name": "youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Edit Fields').last().json.id }}",
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        2768,
+        704
+      ],
+      "id": "4ef446c8-51e2-4004-bfad-dd0b72067f81",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "ffurvj1Wcn2BTtNk",
+          "name": "Youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1"
+        },
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2640,
+        704
+      ],
+      "id": "bb07ddb9-d89f-4192-8046-79a47149f990",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "LYZ43jB1xTisnjmj",
+          "name": "youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Junta tudo em uma só e deleta').last().json.mensagensAgrupadas }}",
+        "options": {
+          "systemMessage": "=# 🦷 SECRETÁRIO ODONTOLÓGICO VIRTUAL\n\n## 🎯 MISSÃO\nVocê é o secretário especializado de clínica odontológica via WhatsApp. Gerencie agendamentos, esclareça dúvidas sobre procedimentos e ofereça atendimento humanizado como um profissional experiente.\n\n**ID Usuário:** {{ $('Edit Fields').last().json.id }} (inserido automaticamente)\n**Data/Hora:** {{ $now.setZone(\"America/Sao_Paulo\").setLocale(\"pt-BR\").toFormat(\"cccc, dd/MM/yyyy 'às' HH:mm\") }}\n**Nome do cliente:** {{ $('Edit Fields').last().json.nome }} (insira no summary em cada agendamento)\n\n---\n\n{{ $json.procedimentos_markdown }}\n\n**⏰ Funcionamento:** Segunda a Sábado das 8h às 18h\n\n---\n\n## 🏥 BASE DE CONHECIMENTO DA CLÍNICA\n\n**🔍 Supabase Vector Store** - Informações gerais da clínica\n- Use para: histórico, equipe, diferenciais, políticas e localização\n- Acione quando: paciente perguntar sobre a clínica, médicos ou estrutura\n\n### **QUANDO USAR A RAG:**\n- ✅ Quem são os dentistas e especialidades\n- ✅ História e tradição da clínica  \n- ✅ Localização e estrutura\n- ✅ Convênios e formas de pagamento\n- ✅ Políticas específicas de atendimento\n\n---\n\n## 🛠️ FERRAMENTAS DISPONÍVEIS\n\n**🔍 busca_agenda** - Verificar disponibilidade e localizar agendamentos\n- After/Before: Datas no formato ISO (2024-01-15T00:00:00)\n\n**🆕 criar_agenda** - Novos agendamentos\n- Start/End: Horários ISO | Summary: Nome + procedimento\n\n**✏️ atualizar_agenda** - Reagendamentos\n- Event_ID: ID do evento encontrado na busca\n\n**❌ deletar_agenda** - Cancelamentos  \n- Event_ID: ID do evento encontrado na busca\n\n**⭐ NPS** - Satisfação (notas 0-10)\n- nota_nps: Número da avaliação\n\n---\n\n## 🔄 PROCESSOS OBRIGATÓRIOS\n\n### **AGENDAMENTO:**\n1. **BUSCAR** disponibilidade com busca_agenda\n2. **INFORMAR** procedimento, duração e preço\n3. **VALIDAR** que horário início + duração não passe de 18h\n4. **CONFIRMAR** horário dentro do funcionamento (Seg-Sáb 8h-18h)\n5. **VERIFICAR** se horário não tem conflito com agendamentos existentes\n6. **CRIAR** agendamento com dados completos com a tool \"criar_agenda\" APENAS se passou em todas as validações\n7. **CONFIRMAR** sucesso ao paciente\n\n### **REAGENDAMENTO:**\n1. **LOCALIZAR** agendamento existente (busca_agenda em período amplo)\n2. **IDENTIFICAR** Event_ID correto\n3. **BUSCAR** novos horários disponíveis\n4. **ATUALIZAR** com novo horário confirmado \"atualizar_agenda\"\n\n### **CANCELAMENTO:**\n1. **LOCALIZAR** agendamento\n2. **CONFIRMAR** dados com paciente\n3. **DELETAR** usando Event_ID correto e a tool \"deletar_agenda\"\n4. **CONFIRMAR** cancelamento realizado\n\n---\n\n## 🎯 REGRAS CRÍTICAS\n\n### **HORÁRIOS:**\n- ✅ Apenas Segunda a Sábado 8h às 18h\n- ✅ SEMPRE verificar disponibilidade antes de agendar\n- ✅ Usar formato ISO: YYYY-MM-DDTHH:mm:ss\n- 🚨 **VALIDAÇÃO OBRIGATÓRIA:** Horário de início + duração do procedimento DEVE terminar até às 18h\n- 🚨 **NUNCA agendar** se o procedimento terminar após 18h (ex: procedimento de 2h às 17h = termina 19h = PROIBIDO)\n\n### **CONFLITOS E DISPONIBILIDADE:**\n- 🚨 **NUNCA agendar** em horário ocupado, independente da situação\n- 🚨 **SEMPRE usar busca_agenda** para verificar conflitos antes de criar agendamento\n- 🚨 **Se horário solicitado estiver ocupado ou inválido:** sugerir alternativas, NUNCA forçar agendamento\n\n### **PROCEDIMENTOS:**\n- ✅ Sempre informar duração e preço\n- ✅ Calcular horário fim automaticamente (início + duração)\n- ✅ **VALIDAR** que horário fim não passa de 18h\n- ✅ Explicar benefícios e cuidados quando questionado\n\n---\n\n## REGISTRAR NPS\n\n**Após o cliente enviar a nota**: use a tool \"NPS\" para registrar a nota\n\n--- \n\n## 🦷 ORIENTAÇÕES ODONTOLÓGICAS\n\n### **COMO SECRETÁRIO ESPECIALIZADO:**\n- **Esclareça dúvidas** sobre procedimentos e tratamentos\n- **Oriente cuidados** pré e pós-procedimento\n- **Explique benefícios** de cada tratamento\n- **Tranquilize pacientes** com informações precisas\n- **Sugira procedimentos** adequados quando apropriado\n\n### **EMERGÊNCIAS:**\n- **Dor intensa:** Priorizar primeiro horário disponível\n- **Trauma/Sangramento:** Orientar procurar pronto-socorro se grave\n- **Quebra de dente:** Agendar com urgência e orientar cuidados\n\n---\n\n## 💬 COMUNICAÇÃO HUMANIZADA\n\n**Formato WhatsApp:** Use *negrito*, 📅 datas, 🕐 horários, 💰 preços\n\n**Tom:** Profissional, acolhedor e informativo como secretário experiente\n\n**Template Agendamento:**\n```\nOlá! 😊 \n\n**PROCEDIMENTO SELECIONADO:**\n📋 [Nome] - 🕐 [X]min - 💰 R$ [valor]\n\nVerificando disponibilidade...\n\n**HORÁRIOS LIVRES:**\n📅 [Opções disponíveis]\n\nQual prefere?\n```\n\n---\n\n## ⚡ DIRETRIZES ABSOLUTAS\n\n### **✅ SEMPRE:**\n- Use busca_agenda ANTES de qualquer operação\n- Confirme procedimento, horário e preço\n- Respeite horário de funcionamento rigorosamente\n- Registre NPS quando usuário der nota 0-10\n- Atenda como secretário experiente e acolhedor\n\n### **❌ NUNCA:**\n- Agende fora do horário de funcionamento\n- Agende procedimentos que terminem após 18h\n- Agende em horário ocupado, independente da situação\n- Execute sem verificar disponibilidade E conflitos\n- Ignore feedback de satisfação\n- Seja robótico - seja humano e profissional\n- Force agendamento em horário inválido ou ocupado\n\n---\n\n**🎯 FOCO: GESTÃO COMPLETA DA AGENDA + ATENDIMENTO HUMANIZADO COMO SECRETÁRIO ODONTOLÓGICO ESPECIALIZADO**"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        2832,
+        400
+      ],
+      "id": "a74c0ef9-a0d2-40ec-96c4-f7331092f25b",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/SUA_INSTANCIA/token/SEU_TOKEN/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "client-token"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $('Webhook').last().json.body.phone }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Contabilizar Caracteres').last().json.result }}"
+            },
+            {
+              "name": "delayTyping",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4192,
+        416
+      ],
+      "id": "8b630ee5-856a-4949-9b24-f50fa551d4f7",
+      "name": "Responde usuário"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "61cfae58-b041-4717-8b23-65c372a72aab",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1808,
+        400
+      ],
+      "id": "3bc88cd9-c793-4e9c-9aa8-f233c7a6fff3",
+      "name": "Webhook",
+      "webhookId": "61cfae58-b041-4717-8b23-65c372a72aab"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "clientes_clinica",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "numero",
+              "keyValue": "={{ $json.body.phone }}"
+            },
+            {
+              "keyName": "clinica_id",
+              "keyValue": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        400
+      ],
+      "id": "665e6603-b230-4cb3-bee0-f01eaa6b9a9d",
+      "name": "GET Supabase User",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "hecbcE9NFbf9ljB8",
+          "name": "youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              },
+              "id": "ade3711d-2e20-4a36-9e56-b7512be47621"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1360,
+        400
+      ],
+      "id": "627cd10e-0ba6-4836-9116-dbf222dfaa2a",
+      "name": "IF User Exists"
+    },
+    {
+      "parameters": {
+        "tableId": "clientes_clinica",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Nome",
+              "fieldValue": "={{ $('Webhook').last().json.body.chatName }}"
+            },
+            {
+              "fieldId": "numero",
+              "fieldValue": "={{ $('Webhook').last().json.body.phone }}"
+            },
+            {
+              "fieldId": "clinica_id",
+              "fieldValue": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1152,
+        544
+      ],
+      "id": "f8ff159e-fd00-4037-9d8d-e90fed78a1e4",
+      "name": "Create Supabase User",
+      "credentials": {
+        "supabaseApi": {
+          "id": "hecbcE9NFbf9ljB8",
+          "name": "youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "b2e0e70a-0110-47be-ac29-aa08c385c7bf",
+      "name": "OpenAI2",
+      "retryOnFail": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "LYZ43jB1xTisnjmj",
+          "name": "youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Webhook').last().json.body.audio.audioUrl }}",
+                    "rightValue": "audio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "4b1037f5-f934-4c7f-b5ac-8aa32f15a9d4"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Áudio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "fd0a4cc8-bafd-4d9e-b1c6-e1bcec3222a5",
+                    "leftValue": "={{ $('Webhook').last().json.body.text.message }}",
+                    "rightValue": "conversation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Texto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2806e774-4536-4428-aee6-82c982d7bc05",
+                    "leftValue": "={{ $('Webhook').last().json.body.image.imageUrl }}",
+                    "rightValue": "imageMessage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Imagem"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a50f50a2-8394-4206-b4b1-f60ddac653c2",
+                    "leftValue": "={{ $('Webhook').last().json.body.video.videoUrl }}",
+                    "rightValue": "videoMessage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Vídeo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "34d0e9a4-b734-4867-9783-ff00ca082680",
+                    "leftValue": "={{ $('Webhook').last().json.body.document.documentUrl }}",
+                    "rightValue": "documentMessage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Documento"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ff6924b3-6743-4352-969b-548c9919eb2d",
+                    "leftValue": "={{ $('Webhook').last().json.body.contact.vCard }}",
+                    "rightValue": "={{ $('Webhook').item.json.body.contact.vCard }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Contato"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -528,
+        320
+      ],
+      "id": "683e4ed5-46a3-4e1b-9132-45940da565cc",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "77dc0d61-64cc-41b6-a1e2-f410a0e0e667",
+              "name": "=text",
+              "value": "=Usuário enviou um vídeo. Explique pra ele que você não pode baixar vídeos. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -192,
+        416
+      ],
+      "id": "10375b74-0a12-4d4c-b76f-fbb5ae48b9df",
+      "name": "Aviso contra vídeo"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "009b7b4b-63e1-4c2c-957d-bd11bd8d63c1",
+              "name": "=text",
+              "value": "Usuário enviou um Documento. Explique pra ele que você não pode baixar documentos. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -192,
+        560
+      ],
+      "id": "c353b197-4131-47bc-b251-9f200c21ee2d",
+      "name": "Aviso contra doc"
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        320
+      ],
+      "id": "7e7eaedf-069d-4880-99a6-f68ad8215699",
+      "name": "Merge1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Webhook').item.json.body.audio.audioUrl }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -256,
+        0
+      ],
+      "id": "b67cc4c5-e192-4c57-88db-bd1a67a102aa",
+      "name": "Audio"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "78d859be-3ccf-47bb-b5e5-aca0ce8c019e",
+              "name": "text",
+              "value": "={{ $('Webhook').last().json.body.text.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -192,
+        128
+      ],
+      "id": "de58bc07-e249-4cda-bd6c-b055c385c1a6",
+      "name": "Mensagem"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "116a7aa9-9b71-4bb2-b882-f54a6fa380b6",
+              "name": "=text",
+              "value": "Usuário enviou um Imagem. Explique pra ele que você não pode baixar Imagens. ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -192,
+        272
+      ],
+      "id": "c93f2853-3ef1-4fe4-9699-81c482d3660c",
+      "name": "Aviso de Imagem"
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "={{ $('Webhook').last().json.body.phone }}",
+        "messageData": "={{ $json.text }}",
+        "tail": true
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        512,
+        368
+      ],
+      "id": "8288a0da-4eca-4591-94c8-9b6c87138752",
+      "name": "Redis3",
+      "credentials": {
+        "redis": {
+          "id": "tRo5AMN7sFpQlAWn",
+          "name": "Youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "mensagens",
+        "key": "={{ $('Webhook').last().json.body.phone }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        368
+      ],
+      "id": "948f506a-cd9a-4443-87dd-f5abb5829594",
+      "name": "Redis4",
+      "credentials": {
+        "redis": {
+          "id": "tRo5AMN7sFpQlAWn",
+          "name": "Youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        768,
+        368
+      ],
+      "id": "746df3e7-06b0-4864-ab66-b78c763d3619",
+      "name": "Wait2",
+      "webhookId": "5dcfe7db-6872-409c-b1d9-ff953e0366b1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f2dca984-a179-42e6-9a6d-30b07a1b07a2",
+              "leftValue": "={{ $('Junta tudo em uma só e deleta').item.json.mensagensAgrupadas  }}",
+              "rightValue": "nenhuma mensagem",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1568,
+        368
+      ],
+      "id": "b80a3e9d-f2d1-4d2b-a811-22b0d8371dff",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ $('Webhook').last().json.body.phone }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        400
+      ],
+      "id": "ffb40323-0f8a-41f9-8808-4801cc3dd035",
+      "name": "Redis",
+      "credentials": {
+        "redis": {
+          "id": "tRo5AMN7sFpQlAWn",
+          "name": "Youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3552,
+        400
+      ],
+      "id": "00a6a5dc-8811-4c16-8393-4e7131f5c54b",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtém todos os itens do nó \"Code\"\nconst codeNode = $('Loop Over Items').all();\n\n// Verifica se há itens no nó \"Code\"\nif (!codeNode || codeNode.length === 0) {\n  return [{ json: { erro: \"Nenhum dado encontrado no nó 'Code'.\" } }];\n}\n\n// Array para armazenar os resultados\nconst output = [];\n\n// Processa cada item do nó \"Code\"\ncodeNode.forEach(item => {\n  // Obtém o texto corretamente\n  const text = item.json.result || \"\";\n\n  // Verifica se o texto é válido\n  if (!text || text.trim() === \"\") {\n    output.push({ json: { erro: \"Texto ausente ou inválido\" } });\n    return;\n  }\n\n  // Conta o número de caracteres na mensagem\n  const characterCount = text.length;\n\n  // Calcula os milissegundos (100 caracteres = 10000 ms)\n  const milliseconds = Math.floor((characterCount / 100) * 10000);\n\n  // Adiciona o resultado ao array de saída\n  output.push({ json: { result: text, characterCount, milliseconds } });\n});\n\n// Retorna os resultados\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3760,
+        416
+      ],
+      "id": "bfa06cfb-804f-4032-a2a6-af3744430eef",
+      "name": "Contabilizar Caracteres",
+      "notes": "Contabiliza caraacteres para saber o tempo"
+    },
+    {
+      "parameters": {
+        "amount": "=0"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3952,
+        416
+      ],
+      "id": "0b05bb31-0cb7-463a-b9fc-db613d83d481",
+      "name": "Wait1",
+      "webhookId": "21cabbfa-7a22-4d32-b3d7-ff9e57ad9ce1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ========================================\n// FORMATAÇÃO UNIVERSAL PARA WHATSAPP\n// Funciona para QUALQUER tipo de mensagem\n// ========================================\n\n// Obtém a saída do Agent\nconst output = $('AI Agent').first()?.json?.output || '';\n\nconsole.log('📥 TEXTO ORIGINAL:', output);\n\n// Se vazio, retorna fallback\nif (!output || output.trim() === '') {\n    return [{ json: { result: \"Sem conteúdo disponível\" } }];\n}\n\n// ========= LIMPEZA UNIVERSAL PARA WHATSAPP =========\nfunction limparTexto(texto) {\n    return texto\n        .replace(/#/g, '') // Remove todas as #\n        .replace(/\\*\\*(.*?)\\*\\*/g, '*$1*') // ** para *\n        .replace(/---/g, '') // Remove ---\n        .replace(/\\n{3,}/g, '\\n\\n') // Máximo 2 quebras seguidas\n        .trim();\n}\n\n// ========= DIVISÃO UNIVERSAL INTELIGENTE =========\nlet textoLimpo = limparTexto(output);\nlet mensagens = [];\n\n// MÉTODO 1: Divisão por parágrafos naturais (\\n\\n)\nif (textoLimpo.includes('\\n\\n')) {\n    console.log('✂️ DIVIDINDO POR PARÁGRAFOS NATURAIS');\n    mensagens = textoLimpo\n        .split('\\n\\n')\n        .filter(p => p.trim().length > 0)\n        .map(p => p.trim());\n}\n\n// MÉTODO 2: Se não tem parágrafos, identifica blocos lógicos\nelse {\n    console.log('✂️ IDENTIFICANDO BLOCOS LÓGICOS');\n    const linhas = textoLimpo.split('\\n').filter(l => l.trim().length > 0);\n    const blocos = [];\n    let blocoAtual = [];\n    \n    for (let i = 0; i < linhas.length; i++) {\n        const linha = linhas[i].trim();\n        blocoAtual.push(linha);\n        \n        // QUEBRA UNIVERSAL 1: Após emoji + frase completa\n        if ((linha.includes('😊') || linha.includes('🦷') || linha.includes('📋')) && \n            (linha.endsWith('!') || linha.endsWith('?'))) {\n            blocos.push(blocoAtual.join('\\n'));\n            blocoAtual = [];\n            continue;\n        }\n        \n        // QUEBRA UNIVERSAL 2: Antes de pergunta (linha que termina com ?)\n        if (i < linhas.length - 1 && linhas[i + 1].endsWith('?') && blocoAtual.length > 2) {\n            blocos.push(blocoAtual.join('\\n'));\n            blocoAtual = [];\n            continue;\n        }\n        \n        // QUEBRA UNIVERSAL 3: Após lista longa (5+ itens que começam com -)\n        if (linha.startsWith('- ') && i < linhas.length - 1 && !linhas[i + 1].startsWith('- ')) {\n            // Conta quantos itens de lista tem no bloco atual\n            const itensLista = blocoAtual.filter(l => l.startsWith('- ')).length;\n            if (itensLista >= 3) {\n                blocos.push(blocoAtual.join('\\n'));\n                blocoAtual = [];\n                continue;\n            }\n        }\n    }\n    \n    // Adiciona último bloco\n    if (blocoAtual.length > 0) {\n        blocos.push(blocoAtual.join('\\n'));\n    }\n    \n    mensagens = blocos.filter(b => b.trim().length > 0);\n}\n\n// MÉTODO 3: Controle de tamanho por mensagem\nmensagens = mensagens.flatMap(msg => {\n    // Se mensagem muito longa (>600 chars), tenta dividir\n    if (msg.length > 600) {\n        const linhasMsg = msg.split('\\n');\n        if (linhasMsg.length > 4) {\n            const meio = Math.floor(linhasMsg.length / 2);\n            return [\n                linhasMsg.slice(0, meio).join('\\n').trim(),\n                linhasMsg.slice(meio).join('\\n').trim()\n            ];\n        }\n    }\n    return [msg];\n});\n\n// MÉTODO 4: Limita a máximo 3 mensagens\nif (mensagens.length > 3) {\n    console.log('🔢 REAGRUPANDO PARA MÁXIMO 3 MENSAGENS');\n    const terco = Math.ceil(mensagens.length / 3);\n    \n    mensagens = [\n        mensagens.slice(0, terco).join('\\n\\n'),\n        mensagens.slice(terco, terco * 2).join('\\n\\n'),\n        mensagens.slice(terco * 2).join('\\n\\n')\n    ].filter(m => m.trim().length > 0);\n}\n\n// FALLBACK: Se algo deu errado, mantém original\nif (mensagens.length === 0) {\n    mensagens = [textoLimpo];\n}\n\nconsole.log('📊 TOTAL MENSAGENS:', mensagens.length);\n\n// ========= RESULTADO FINAL =========\nconst resultado = mensagens\n    .filter(msg => msg && msg.trim().length > 0)\n    .map((msg, index) => {\n        console.log(`📱 MSG ${index + 1} (${msg.length} chars):`, msg.substring(0, 60) + '...');\n        return { json: { result: msg.trim() } };\n    });\n\nconsole.log('✅ FORMATAÇÃO UNIVERSAL CONCLUÍDA');\n\nreturn resultado;"
+      },
+      "id": "0b02b439-ce19-4c34-8a59-c9152ed3f3b5",
+      "name": "formataçãoTexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3248,
+        400
+      ],
+      "retryOnFail": true,
+      "notes": "Formata texto em varias mensagens para enviar"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "285d5278-6fbe-4d13-af3f-1cebe1072bb2",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "0be7cfde-0a0b-4031-9a9d-c968841d4816",
+              "name": "nome",
+              "value": "={{ $json.Nome }}",
+              "type": "string"
+            },
+            {
+              "id": "0251379b-bdbe-4f12-a528-47b4f29a9ceb",
+              "name": "id_clinica",
+              "value": "550e8400-e29b-41d4-a716-446655440000",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -752,
+        368
+      ],
+      "id": "7ab9efde-6c35-4de6-b532-127b970e4e23",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use esta tool para buscar os agendamentos",
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "vitorcardosolido@gmail.com",
+          "mode": "list",
+          "cachedResultName": "vitorcardosolido@gmail.com"
+        },
+        "returnAll": true,
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', `Inicio da data que quer buscar`, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', `Fim da data que quer buscar o agendamento`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        3120,
+        688
+      ],
+      "id": "f297e6f9-4c2b-41f9-b877-5f6f413854ad",
+      "name": "busca_agenda",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "vKtajF8ftpbBh1dD",
+          "name": "youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Modifica agendamento existente. Use para remarcar consultas ou alterar horários. Agende somente em horario de atendimento, e o tempo de atendimento agende de acordo com o serviço. ",
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "vitorcardosolido@gmail.com",
+          "mode": "list",
+          "cachedResultName": "vitorcardosolido@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', `Atualize usando o id do agendamento especifico, use a sua tool busca_agenda para coletar este ID `, 'string') }}",
+        "updateFields": {
+          "description": "={{ $('Edit Fields').last().json.id }}",
+          "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', `Data e horário de término da consulta no formato ISO 8601 com timezone de São Paulo. Formato: YYYY-MM-DDTHH:mm:ss-03:00. Exemplo: 2024-12-15T15:30:00-03:00 (para 15/12/2024 às 15:30). Calcular automaticamente: início + duração do procedimento`, 'string') }}",
+          "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', `Data e horário de término da consulta no formato ISO 8601 com timezone de São Paulo.\nFormato: YYYY-MM-DDTHH:mm:ss-03:00  \nExemplo: 2024-12-15T15:30:00-03:00 (para 15/12/2024 às 15:30)\nCalcular automaticamente: início + duração do procedimento`, 'string') }}",
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', `Título do evento: Nome do paciente + tipo de consulta`, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        3120,
+        848
+      ],
+      "id": "8741f3ba-2a1e-4c25-b9e9-40b9e2666824",
+      "name": "atualizar_agenda",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "vKtajF8ftpbBh1dD",
+          "name": "youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use esta tool para registrar a nota que a pessoa deu para a NPS",
+        "operation": "update",
+        "tableId": "clientes_clinica",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Edit Fields').last().json.id }}"
+            },
+            {
+              "keyName": "clinica_id",
+              "condition": "eq",
+              "keyValue": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "nota_nps",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', `Coloque aqui a nota que a pessoa deu para a NPS em formato de numero apenas`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2896,
+        704
+      ],
+      "id": "d5df28e5-c0e6-4d01-8d0d-85478a450a5d",
+      "name": "NPS",
+      "credentials": {
+        "supabaseApi": {
+          "id": "hecbcE9NFbf9ljB8",
+          "name": "youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use esta RAG para pesquisa todas as especificações da clinica historia, particularidades, tudo.",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "topK": 6,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        2656,
+        880
+      ],
+      "id": "07a4daa4-17de-4de8-a76a-d9d590702385",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "hecbcE9NFbf9ljB8",
+          "name": "youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2720,
+        1040
+      ],
+      "id": "fab47bdf-6f1a-40cc-9728-92613f97c9b0",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "LYZ43jB1xTisnjmj",
+          "name": "youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================\n// CODE N8N - FORMATAÇÃO DINÂMICA DE PROCEDIMENTOS\n// Recebe JSON de procedimentos e formata para uso em prompts\n// =====================================================\n\n// Obtém todos os itens de entrada\nconst inputData = $input.all();\nconst procedimentos = [];\n\n// Processa cada item de entrada\nfor (const item of inputData) {\n  // Verifica se o item tem dados de procedimento\n  if (item.json) {\n    // Se for um array de procedimentos\n    if (Array.isArray(item.json)) {\n      procedimentos.push(...item.json);\n    }\n    // Se for um único procedimento\n    else if (item.json.nome_procedimento || item.json.id) {\n      procedimentos.push(item.json);\n    }\n    // Se os dados estão em uma propriedade específica\n    else if (item.json.data && Array.isArray(item.json.data)) {\n      procedimentos.push(...item.json.data);\n    }\n  }\n}\n\n// Função para formatar preço\nfunction formatarPreco(preco) {\n  if (!preco || preco === '' || preco === null) {\n    return '';\n  }\n  \n  // Se já tem R$, retorna como está\n  if (preco.toString().includes('R$')) {\n    return ` - ${preco}`;\n  }\n  \n  // Se é número, formata\n  const numero = parseFloat(preco);\n  if (!isNaN(numero)) {\n    return ` - R$ ${numero.toFixed(2).replace('.', ',')}`;\n  }\n  \n  // Se é string, assume que está formatada\n  return ` - R$ ${preco}`;\n}\n\n// Função para formatar tempo\nfunction formatarTempo(tempo) {\n  if (!tempo || tempo === '' || tempo === null) {\n    return '';\n  }\n  \n  // Se já tem \"min\", retorna como está\n  if (tempo.toString().includes('min')) {\n    return ` - ${tempo}`;\n  }\n  \n  // Se é número, adiciona \"min\"\n  const numero = parseInt(tempo);\n  if (!isNaN(numero)) {\n    return ` - ${numero}min`;\n  }\n  \n  // Se é string, assume que está formatada\n  return ` - ${tempo}min`;\n}\n\n// Gera o markdown formatado\nlet markdownProcedimentos = '# Procedimentos da Clínica\\n\\n';\n\nif (procedimentos.length === 0) {\n  markdownProcedimentos += '*Nenhum procedimento encontrado*';\n} else {\n  procedimentos.forEach((proc, index) => {\n    // Nome do procedimento\n    const nome = proc.nome_procedimento || proc.nome || proc.title || `Procedimento ${index + 1}`;\n    \n    // Preço formatado\n    const precoFormatado = formatarPreco(proc.preço || proc.preco || proc.price);\n    \n    // Tempo formatado  \n    const tempoFormatado = formatarTempo(proc.Tempo || proc.tempo || proc.duration || proc.duracao);\n    \n    // Adiciona item na lista\n    markdownProcedimentos += `• **${nome}**${precoFormatado}${tempoFormatado}\\n`;\n  });\n}\n\n// Debug - log do resultado\nconsole.log('📋 PROCEDIMENTOS PROCESSADOS:', procedimentos.length);\nconsole.log('📝 MARKDOWN GERADO:', markdownProcedimentos);\n\n// Retorna o resultado formatado\nreturn [{\n  json: {\n    // Markdown formatado para usar em prompts\n    procedimentos_markdown: markdownProcedimentos,\n    \n    // Dados originais para referência\n    procedimentos_raw: procedimentos,\n    \n    // Estatísticas\n    total_procedimentos: procedimentos.length,\n    \n    // Versão compacta (sem título, só lista)\n    procedimentos_lista: procedimentos.map(proc => {\n      const nome = proc.nome_procedimento || proc.nome || 'Sem nome';\n      const preco = formatarPreco(proc.preço || proc.preco || proc.price);\n      const tempo = formatarTempo(proc.Tempo || proc.tempo || proc.duration);\n      return `• **${nome}**${preco}${tempo}`;\n    }).join('\\n'),\n    \n    // Apenas nomes (para validação)\n    nomes_procedimentos: procedimentos.map(proc => \n      proc.nome_procedimento || proc.nome || 'Sem nome'\n    ),\n    \n    // Para uso direto em expressões n8n\n    lista_para_prompt: markdownProcedimentos\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2432,
+        400
+      ],
+      "id": "f252fc05-12d5-40ca-b9db-9975b2a58802",
+      "name": "Parse Procedimentos"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "produtos_clinicas",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "clinica_id",
+              "condition": "eq",
+              "keyValue": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        400
+      ],
+      "id": "5371e4fe-98b2-42d6-b5ef-1beba4674207",
+      "name": "Busca Produtos",
+      "credentials": {
+        "supabaseApi": {
+          "id": "hecbcE9NFbf9ljB8",
+          "name": "youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Garante que a variável mensagens sempre exista\nconst mensagens = $json.mensagens || [];\n\n// Garante que seja array\nconst lista = Array.isArray(mensagens) ? mensagens : [mensagens];\n\n// Remove qualquer item que contenha apenas link (ex: de áudio)\nconst filtradas = lista.filter(msg => {\n  if (typeof msg !== 'string') return false;\n\n  // Remove se for só link do WhatsApp\n  const ehLink = msg.trim().match(/^https:\\/\\/mmg\\.whatsapp\\.net\\/.*$/);\n  return !ehLink;\n});\n\n// Se não houver nenhuma mensagem útil, retorna um fallback\nif (filtradas.length === 0) {\n  return [{\n    json: {\n      mensagensAgrupadas: \"nenhuma mensagem\"\n    }\n  }];\n}\n\n// Junta as mensagens restantes\nreturn [{\n  json: {\n    mensagensAgrupadas: filtradas.join(' ')\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        368
+      ],
+      "id": "23d45745-4ae7-4466-818b-a9a5e2fae626",
+      "name": "Junta tudo em uma só e deleta"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "calendarId": {
+          "__rl": true,
+          "value": "vitorcardosolido@gmail.com",
+          "mode": "list",
+          "cachedResultName": "vitorcardosolido@gmail.com"
+        },
+        "triggerOn": "eventCancelled",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1824,
+        1024
+      ],
+      "id": "cbf7e49c-674e-4454-a9ac-721dc23cd448",
+      "name": "Avisa  Cancelamento",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "vKtajF8ftpbBh1dD",
+          "name": "youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "calendarId": {
+          "__rl": true,
+          "value": "vitorcardosolido@gmail.com",
+          "mode": "list",
+          "cachedResultName": "vitorcardosolido@gmail.com"
+        },
+        "triggerOn": "eventCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1824,
+        1344
+      ],
+      "id": "092635da-982e-4d9c-a74e-330d97a96ac0",
+      "name": "Avisa Agendamento",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "vKtajF8ftpbBh1dD",
+          "name": "youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "calendarId": {
+          "__rl": true,
+          "value": "vitorcardosolido@gmail.com",
+          "mode": "list",
+          "cachedResultName": "vitorcardosolido@gmail.com"
+        },
+        "triggerOn": "eventUpdated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1824,
+        1776
+      ],
+      "id": "fcbd8164-24a7-4bbd-8a73-79a256f9bdfa",
+      "name": "Avisa Mudança",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "vKtajF8ftpbBh1dD",
+          "name": "youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# {{ $('Seta Mudança').item.json.eventoFormatado }}\n\n### {{ $json.contextoCompleto }}",
+        "options": {
+          "systemMessage": "=# Prompt para IA - Aviso de Atualização de Agendamento\n\n## Sua Função\nVocê é um assistente especializado em criar mensagens de notificação para o dono do estabelecimento via WhatsApp sobre atualizações em agendamentos. Sua tarefa é informar sobre mudanças que foram realizadas em um evento já existente.\n\n## Dados que Você Receberá\n\n### 1. DADOS DO EVENTO ATUALIZADO (em string natural):\n```\n🔄 EVENTO ATUALIZADO\n\n📅 Atendimento com cliente\n👤 Cliente: cliente@email.com\n📆 Data: 06/07/2025\n🕐 Horário: 14:30 às 15:30\n📋 Status: Confirmado\n⏰ Tempo restante: 2 dia(s)\n🔄 Atualizado em: 04/07/2025 19:15:30\n```\n\n### 2. HISTÓRICO DA CONVERSA (em string natural):\n```\nCliente: Preciso remarcar meu atendimento\nAgente: Claro! Qual horário você prefere?\nCliente: Pode ser às 14:30 ao invés de 13:30?\nAgente: Perfeito! Vou alterar para 14:30\n[resto da conversa sobre a alteração]\n```\n\n## Instruções para Criar a Mensagem\n\n### ✅ O QUE FAZER:\n1. **Analise o histórico** para entender o motivo da atualização\n2. **Identifique o que foi alterado** com base na conversa (horário, data, cliente, etc.)\n3. **Destaque a urgência** se o evento está próximo (menos de 24h)\n4. **Extraia informações do cliente** se disponíveis no histórico\n5. **Mantenha tom alerta mas profissional** para chamar atenção\n6. **Inclua emojis** para organizar e destacar informações importantes\n\n### ❌ O QUE NÃO FAZER:\n- Não assuma mudanças que não estão claras no histórico\n- Não use tom alarmista desnecessário\n- Não inclua detalhes técnicos sobre a atualização\n- Não faça mensagens muito longas\n- Não omita informações importantes sobre a alteração\n\n## Estrutura da Mensagem\n\nSua mensagem deve seguir esta estrutura:\n\n```\n🔄 [Título do aviso de atualização]\n\n👤 [Informações do cliente]\n\n📋 [O que foi alterado/motivo da mudança]\n\n📅 [Dados atuais do agendamento]\n\n⚠️ [Alerta de urgência se necessário]\n\n[Observações importantes]\n```\n\n## Exemplos de Mensagens\n\n### Exemplo 1 - Remarcação de Horário:\n```\n🔄 **AGENDAMENTO REMARCADO**\n\n👤 **Cliente:** Maria Silva\n📧 **Contato:** cliente@email.com\n\n📋 **Alteração:** Horário alterado de 13:30 para 14:30\n💬 **Motivo:** Cliente solicitou remarcação\n\n📅 **Dados atuais:**\n🗓️ Data: 06/07/2025  \n🕐 Horário: 14:30 às 15:30\n📋 Status: Confirmado\n\n⏰ **Evento em 2 dias**\n```\n\n### Exemplo 2 - Alteração Urgente:\n```\n🔄 **AGENDAMENTO ALTERADO - URGENTE**\n\n👤 **Cliente:** João Santos\n\n📋 **Alteração:** Data alterada para hoje\n💬 **Motivo:** Cliente tinha disponibilidade hoje\n\n📅 **Dados atuais:**\n🗓️ Data: 04/07/2025\n🕐 Horário: 16:00 às 17:00  \n📋 Status: Confirmado\n\n⚠️ **ATENÇÃO: Evento hoje em 3 horas!**\n```\n\n### Exemplo 3 - Mudança de Status:\n```\n🔄 **STATUS DO AGENDAMENTO ALTERADO**\n\n👤 **Cliente:** Ana Costa\n\n📋 **Alteração:** Status alterado para confirmado\n💬 **Motivo:** Cliente confirmou presença\n\n📅 **Dados atuais:**\n🗓️ Data: 08/07/2025\n🕐 Horário: 09:00 às 10:00\n📋 Status: Confirmado\n\n✅ **Agendamento confirmado pelo cliente**\n```\n\n### Exemplo 4 - Múltiplas Alterações:\n```\n🔄 **MÚLTIPLAS ALTERAÇÕES NO AGENDAMENTO**\n\n👤 **Cliente:** Carlos Oliveira\n\n📋 **Alterações realizadas:**\n• Horário: 10:00 → 11:00\n• Serviço: Atendimento básico → Atendimento completo\n• Status: Tentativo → Confirmado\n\n📅 **Dados atuais:**\n🗓️ Data: 07/07/2025\n🕐 Horário: 11:00 às 12:30\n📋 Status: Confirmado\n\n💬 **Cliente adicionou serviço extra**\n```\n\n## Diretrizes Específicas\n\n1. **Tom de Voz**: Alerta, informativo, profissional\n2. **Tamanho**: Máximo 8-10 linhas de texto\n3. **Prioridade**: Destacar o que mudou e quando\n4. **Urgência**: Alertar se evento está próximo (menos de 24h)\n5. **Organização**: Use emojis para separar seções claramente\n6. **Completude**: Inclua dados atuais após a alteração\n\n## Níveis de Urgência\n\n### 🚨 CRÍTICO (menos de 2 horas):\n- Use \"URGENTE\" no título\n- Destaque tempo restante em vermelho conceitual\n- Priorize informações essenciais\n\n### ⚠️ ALTO (menos de 24 horas):\n- Use \"ATENÇÃO\" no corpo da mensagem\n- Destaque que é para hoje/amanhã\n- Inclua tempo restante\n\n### 📋 NORMAL (mais de 24 horas):\n- Mantenha tom informativo padrão\n- Foque nas alterações realizadas\n- Inclua contexto quando disponível\n\n## Prompt Final\n\nCom base no histórico da conversa e nos dados do evento atualizado, escreva uma mensagem de aviso para o dono do estabelecimento informando sobre as alterações realizadas no agendamento. A mensagem deve ser:\n\n- Clara sobre o que foi alterado\n- Informativa sobre os dados atuais\n- Adequada ao nível de urgência\n- Profissional e bem organizada\n- Incluir o motivo da alteração se identificado na conversa\n- **Adaptada ao tipo de negócio** identificado no histórico da conversa\n\n**IMPORTANTE:** Identifique o tipo de negócio pelo contexto da conversa e adapte a linguagem adequadamente (ex: consulta/procedimento para área da saúde, atendimento/serviço para outras áreas, etc.).\n\n**Responda apenas com a mensagem final, sem explicações adicionais.**"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        1776
+      ],
+      "id": "3fd8b1c9-93e9-4b5a-b3ac-64ef7e46eb4d",
+      "name": "IA AVISO  ATUALIZAÇÃO"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# {{ $('Seta Agendamento').last().json.eventoFormatado }}\n\n### {{ $json.contextoCompleto }}",
+        "options": {
+          "systemMessage": "=# Prompt para IA - Aviso de Novo Agendamento ao Dono\n\n## Sua Função\nVocê é um assistente especializado em criar mensagens de notificação para o dono do estabelecimento via WhatsApp. Sua tarefa é informar sobre um novo agendamento que foi realizado, com base no histórico da conversa e nos dados do evento.\n\n## Dados que Você Receberá\n\n### 1. DADOS DO EVENTO (em string natural):\n```\n📅 Atendimento com cliente\n📆 Data: 06/07/2025  \n🕐 Horário: 13:30 às 14:30\n```\n\n### 2. HISTÓRICO DA CONVERSA (em string natural):\n```\nCliente: Olá, gostaria de agendar um atendimento\nAgente: Olá! Claro, que tipo de serviço você precisa?\nCliente: É para [serviço específico]\nAgente: Perfeito! Temos horários disponíveis...\n[resto da conversa]\n```\n\n## Instruções para Criar a Mensagem\n\n### ✅ O QUE FAZER:\n1. **Analise o histórico** para entender o contexto e identificar o cliente\n2. **Extraia informações relevantes** como nome do cliente, tipo de serviço, observações importantes\n3. **Resuma o que foi tratado** de forma clara e objetiva\n4. **Confirme os dados do agendamento** usando as informações do evento\n5. **Mantenha tom profissional e direto** adequado para comunicação empresarial\n6. **Inclua emojis moderadamente** para organizar a informação\n7. **Adapte-se ao tipo de negócio** baseado no contexto da conversa\n\n### ❌ O QUE NÃO FAZER:\n- Não invente informações que não estão no histórico\n- Não use linguagem muito casual ou informal\n- Não inclua detalhes desnecessários da conversa\n- Não faça a mensagem muito longa\n- Não omita informações importantes sobre o cliente\n\n## Estrutura da Mensagem\n\nSua mensagem deve seguir esta estrutura:\n\n```\n🔔 [Título do aviso]\n\n👤 [Informações do cliente identificadas no histórico]\n\n📋 [Resumo do que foi tratado/solicitado]\n\n📅 [Dados do agendamento]\n\n[Observações importantes se houver]\n```\n\n## Exemplos de Mensagens\n\n### Exemplo 1 - Serviço de Saúde:\n```\n🔔 *NOVO AGENDAMENTO REALIZADO*\n\n👤 *Cliente:* Maria Silva  \n📧 *Contato:* (11) 99999-9999\n\n📋 *Solicitação:* Consulta de avaliação + procedimento específico\n\n📅 *Agendado para:*\n🗓️ Data: 06/07/2025\n🕐 Horário: 13:30 às 14:30\n\n💬 *Observações:* Cliente mencionou sintomas específicos e urgência.\n```\n\n### Exemplo 2 - Serviço de Beleza:\n```\n🔔 *NOVO AGENDAMENTO REALIZADO*\n\n👤 *Cliente:* Ana Costa  \n📧 *Contato:* cliente@email.com\n\n📋 *Solicitação:* Procedimento estético + orientação\n\n📅 *Agendado para:*\n🗓️ Data: 15/07/2025\n🕐 Horário: 14:00 às 15:00\n\n💬 *Observações:* Primeira vez da cliente, solicitou informações detalhadas.\n```\n\n### Exemplo 3 - Serviço Profissional:\n```\n🔔 *NOVO AGENDAMENTO REALIZADO*\n\n👤 *Cliente:* João Santos\n\n📋 *Solicitação:* Atendimento de rotina\n\n📅 *Agendado para:*\n🗓️ Data: 20/07/2025\n🕐 Horário: 09:00 às 10:00\n```\n\n## Diretrizes Específicas\n\n1. **Tom de Voz**: Profissional, informativo, direto\n2. **Tamanho**: Máximo 6-8 linhas de texto\n3. **Prioridade**: Informações do cliente e motivo da consulta\n4. **Clareza**: Dados do agendamento sempre destacados\n5. **Organização**: Use emojis para separar seções\n6. **Completude**: Inclua todas as informações relevantes disponíveis\n\n## Prompt Final\n\nCom base no histórico da conversa e nos dados do evento fornecidos, escreva uma mensagem de aviso para o dono do estabelecimento informando sobre o novo agendamento que foi realizado. A mensagem deve ser:\n\n- Informativa sobre quem é o cliente\n- Clara sobre o serviço/atendimento solicitado  \n- Específica sobre data e horário\n- Profissional e bem organizada\n- Incluir observações importantes mencionadas na conversa\n- **Adaptada ao tipo de negócio** identificado no histórico da conversa\n\n**IMPORTANTE:** Identifique o tipo de negócio pelo contexto da conversa e adapte a linguagem adequadamente (ex: consulta/procedimento para área da saúde, atendimento/serviço para outras áreas, etc.).\n\n**Responda apenas com a mensagem final, sem explicações adicionais.**"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        1344
+      ],
+      "id": "98bcc168-e9a5-4527-a126-d0d9cbde050a",
+      "name": "IA AVISO AGENDAMENTO"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-nano"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -736,
+        1552
+      ],
+      "id": "fc33a683-0039-47e8-85a1-20cc4a7daa0e",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "LYZ43jB1xTisnjmj",
+          "name": "youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Código para formatar eventos ATUALIZADOS do Google Calendar no n8n\n// Use este código em um node \"Code\" do n8n após o trigger \"eventUpdated\"\n\n// Função para formatar data e hora em português brasileiro\nfunction formatarDataHora(dataInicio, dataFim) {\n  const inicio = new Date(dataInicio);\n  const fim = new Date(dataFim);\n  \n  // Opções para formatação da data\n  const opcoes = {\n    weekday: 'long',\n    year: 'numeric',\n    month: 'long',\n    day: 'numeric',\n    hour: '2-digit',\n    minute: '2-digit',\n    timeZone: 'America/Sao_Paulo'\n  };\n  \n  const dataFormatada = inicio.toLocaleDateString('pt-BR', opcoes);\n  const horaInicio = inicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });\n  const horaFim = fim.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });\n  \n  return {\n    dataCompleta: dataFormatada,\n    horario: `${horaInicio} às ${horaFim}`,\n    data: inicio.toLocaleDateString('pt-BR'),\n    horaInicio: horaInicio,\n    horaFim: horaFim\n  };\n}\n\n// Função para extrair email do convidado\nfunction extrairEmailConvidado(evento) {\n  if (evento.attendees && evento.attendees.length > 0) {\n    // Filtra apenas convidados que não são o organizador\n    const convidados = evento.attendees.filter(attendee => \n      attendee.email !== evento.organizer.email\n    );\n    \n    if (convidados.length > 0) {\n      return convidados[0].email; // Retorna o primeiro convidado\n    }\n  }\n  return null;\n}\n\n// Função para identificar o status do evento\nfunction identificarStatusEvento(evento) {\n  const status = evento.status;\n  \n  switch(status) {\n    case 'confirmed':\n      return 'Confirmado';\n    case 'tentative':\n      return 'Tentativo';\n    case 'cancelled':\n      return 'Cancelado';\n    default:\n      return 'Status desconhecido';\n  }\n}\n\n// Função para calcular tempo até o evento\nfunction tempoAteEvento(dataInicio) {\n  const agora = new Date();\n  const inicio = new Date(dataInicio);\n  const diffMs = inicio - agora;\n  const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));\n  const diffDias = Math.floor(diffHoras / 24);\n  \n  if (diffDias > 0) {\n    return `${diffDias} dia(s)`;\n  } else if (diffHoras > 0) {\n    return `${diffHoras} hora(s)`;\n  } else if (diffMs > 0) {\n    const diffMinutos = Math.floor(diffMs / (1000 * 60));\n    return `${diffMinutos} minuto(s)`;\n  } else {\n    return 'Evento já passou';\n  }\n}\n\n// Função principal para formatar o evento atualizado\nfunction formatarEventoAtualizado(evento) {\n  const summary = evento.summary || 'Evento sem título';\n  const emailConvidado = extrairEmailConvidado(evento);\n  const dataHora = formatarDataHora(evento.start.dateTime, evento.end.dateTime);\n  const statusEvento = identificarStatusEvento(evento);\n  const tempoRestante = tempoAteEvento(evento.start.dateTime);\n  \n  // Monta a string formatada para atualização\n  let eventoFormatado = `🔄 EVENTO ATUALIZADO\\n\\n`;\n  eventoFormatado += `📅 ${summary}`;\n  \n  if (emailConvidado) {\n    eventoFormatado += `\\n👤 Cliente: ${emailConvidado}`;\n  }\n  \n  eventoFormatado += `\\n📆 Data: ${dataHora.data}`;\n  eventoFormatado += `\\n🕐 Horário: ${dataHora.horario}`;\n  eventoFormatado += `\\n📋 Status: ${statusEvento}`;\n  eventoFormatado += `\\n⏰ Tempo restante: ${tempoRestante}`;\n  \n  // Adiciona informações de quando foi atualizado\n  const ultimaAtualizacao = new Date(evento.updated);\n  const atualizacaoFormatada = ultimaAtualizacao.toLocaleString('pt-BR', {\n    timeZone: 'America/Sao_Paulo'\n  });\n  eventoFormatado += `\\n🔄 Atualizado em: ${atualizacaoFormatada}`;\n  \n  return {\n    eventoFormatado: eventoFormatado,\n    tipoEvento: 'atualização',\n    summary: summary,\n    emailConvidado: emailConvidado,\n    data: dataHora.data,\n    horario: dataHora.horario,\n    horaInicio: dataHora.horaInicio,\n    horaFim: dataHora.horaFim,\n    dataCompleta: dataHora.dataCompleta,\n    statusEvento: statusEvento,\n    tempoRestante: tempoRestante,\n    ultimaAtualizacao: atualizacaoFormatada,\n    sequencia: evento.sequence || 0 // Número da sequência de atualizações\n  };\n}\n\n// Processa os dados do input\nconst eventos = $input.all();\nconst eventosFormatados = [];\n\nfor (const item of eventos) {\n  const evento = item.json;\n  \n  // Verifica se realmente é uma atualização (não um evento novo)\n  if (evento.sequence > 0 || evento.updated !== evento.created) {\n    const eventoProcessado = formatarEventoAtualizado(evento);\n    \n    eventosFormatados.push({\n      json: {\n        ...evento, // Mantém os dados originais\n        eventoFormatado: eventoProcessado.eventoFormatado,\n        tipoEvento: eventoProcessado.tipoEvento,\n        summary: eventoProcessado.summary,\n        emailConvidado: eventoProcessado.emailConvidado,\n        data: eventoProcessado.data,\n        horario: eventoProcessado.horario,\n        horaInicio: eventoProcessado.horaInicio,\n        horaFim: eventoProcessado.horaFim,\n        dataCompleta: eventoProcessado.dataCompleta,\n        statusEvento: eventoProcessado.statusEvento,\n        tempoRestante: eventoProcessado.tempoRestante,\n        ultimaAtualizacao: eventoProcessado.ultimaAtualizacao,\n        sequencia: eventoProcessado.sequencia\n      }\n    });\n  }\n}\n\nreturn eventosFormatados;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1616,
+        1776
+      ],
+      "id": "0b07f865-4bd2-4c41-937d-23b8cfc225bc",
+      "name": "Seta Mudança"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Código para formatar eventos do Google Calendar no n8n\n// Use este código em um node \"Code\" do n8n\n\n// Função para formatar data e hora em português brasileiro\nfunction formatarDataHora(dataInicio, dataFim) {\n  const inicio = new Date(dataInicio);\n  const fim = new Date(dataFim);\n  \n  // Opções para formatação da data\n  const opcoes = {\n    weekday: 'long',\n    year: 'numeric',\n    month: 'long',\n    day: 'numeric',\n    hour: '2-digit',\n    minute: '2-digit',\n    timeZone: 'America/Sao_Paulo'\n  };\n  \n  const dataFormatada = inicio.toLocaleDateString('pt-BR', opcoes);\n  const horaInicio = inicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });\n  const horaFim = fim.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });\n  \n  return {\n    dataCompleta: dataFormatada,\n    horario: `${horaInicio} às ${horaFim}`,\n    data: inicio.toLocaleDateString('pt-BR'),\n    horaInicio: horaInicio,\n    horaFim: horaFim\n  };\n}\n\n// Função para extrair email do convidado\nfunction extrairEmailConvidado(evento) {\n  if (evento.attendees && evento.attendees.length > 0) {\n    // Filtra apenas convidados que não são o organizador\n    const convidados = evento.attendees.filter(attendee => \n      attendee.email !== evento.organizer.email\n    );\n    \n    if (convidados.length > 0) {\n      return convidados[0].email; // Retorna o primeiro convidado\n    }\n  }\n  return null;\n}\n\n// Função principal para formatar o evento\nfunction formatarEvento(evento) {\n  const summary = evento.summary || 'Evento sem título';\n  const emailConvidado = extrairEmailConvidado(evento);\n  const dataHora = formatarDataHora(evento.start.dateTime, evento.end.dateTime);\n  \n  // Monta a string formatada\n  let eventoFormatado = `📅 ${summary}`;\n  \n  if (emailConvidado) {\n    eventoFormatado += `\\n👤 Cliente: ${emailConvidado}`;\n  }\n  \n  eventoFormatado += `\\n📆 Data: ${dataHora.data}`;\n  eventoFormatado += `\\n🕐 Horário: ${dataHora.horario}`;\n  \n  return {\n    eventoFormatado: eventoFormatado,\n    summary: summary,\n    emailConvidado: emailConvidado,\n    data: dataHora.data,\n    horario: dataHora.horario,\n    horaInicio: dataHora.horaInicio,\n    horaFim: dataHora.horaFim,\n    dataCompleta: dataHora.dataCompleta\n  };\n}\n\n// Processa os dados do input\nconst eventos = $input.all();\nconst eventosFormatados = [];\n\nfor (const item of eventos) {\n  const evento = item.json;\n  const eventoProcessado = formatarEvento(evento);\n  \n  eventosFormatados.push({\n    json: {\n      ...evento, // Mantém os dados originais\n      eventoFormatado: eventoProcessado.eventoFormatado,\n      summary: eventoProcessado.summary,\n      emailConvidado: eventoProcessado.emailConvidado,\n      data: eventoProcessado.data,\n      horario: eventoProcessado.horario,\n      horaInicio: eventoProcessado.horaInicio,\n      horaFim: eventoProcessado.horaFim,\n      dataCompleta: eventoProcessado.dataCompleta\n    }\n  });\n}\n\nreturn eventosFormatados;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1616,
+        1344
+      ],
+      "id": "c6c790e8-6327-4211-978f-231f49751aec",
+      "name": "Seta Agendamento"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Código para formatar eventos CANCELADOS do Google Calendar no n8n\n// Use este código em um node \"Code\" do n8n após o trigger \"eventCancelled\"\n\n// Função para formatar data e hora em português brasileiro\nfunction formatarDataHora(dataInicio, dataFim) {\n  const inicio = new Date(dataInicio);\n  const fim = new Date(dataFim);\n  \n  // Opções para formatação da data\n  const opcoes = {\n    weekday: 'long',\n    year: 'numeric',\n    month: 'long',\n    day: 'numeric',\n    hour: '2-digit',\n    minute: '2-digit',\n    timeZone: 'America/Sao_Paulo'\n  };\n  \n  const dataFormatada = inicio.toLocaleDateString('pt-BR', opcoes);\n  const horaInicio = inicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });\n  const horaFim = fim.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });\n  \n  return {\n    dataCompleta: dataFormatada,\n    horario: `${horaInicio} às ${horaFim}`,\n    data: inicio.toLocaleDateString('pt-BR'),\n    horaInicio: horaInicio,\n    horaFim: horaFim\n  };\n}\n\n// Função para extrair email do convidado\nfunction extrairEmailConvidado(evento) {\n  if (evento.attendees && evento.attendees.length > 0) {\n    // Filtra apenas convidados que não são o organizador\n    const convidados = evento.attendees.filter(attendee => \n      attendee.email !== evento.organizer.email\n    );\n    \n    if (convidados.length > 0) {\n      return convidados[0].email; // Retorna o primeiro convidado\n    }\n  }\n  return null;\n}\n\n// Função para calcular tempo até o evento (ou há quanto tempo foi cancelado)\nfunction tempoDoEvento(dataInicio) {\n  const agora = new Date();\n  const inicio = new Date(dataInicio);\n  const diffMs = Math.abs(inicio - agora);\n  const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));\n  const diffDias = Math.floor(diffHoras / 24);\n  \n  if (inicio > agora) {\n    // Evento está no futuro\n    if (diffDias > 0) {\n      return `Evento em ${diffDias} dia(s)`;\n    } else if (diffHoras > 0) {\n      return `Evento em ${diffHoras} hora(s)`;\n    } else {\n      const diffMinutos = Math.floor(diffMs / (1000 * 60));\n      return `Evento em ${diffMinutos} minuto(s)`;\n    }\n  } else {\n    // Evento já passou\n    if (diffDias > 0) {\n      return `Evento há ${diffDias} dia(s)`;\n    } else if (diffHoras > 0) {\n      return `Evento há ${diffHoras} hora(s)`;\n    } else {\n      const diffMinutos = Math.floor(diffMs / (1000 * 60));\n      return `Evento há ${diffMinutos} minuto(s)`;\n    }\n  }\n}\n\n// Função principal para formatar o evento cancelado\nfunction formatarEventoCancelado(evento) {\n  const summary = evento.summary || 'Evento sem título';\n  const emailConvidado = extrairEmailConvidado(evento);\n  const dataHora = formatarDataHora(evento.start.dateTime, evento.end.dateTime);\n  const tempoEvento = tempoDoEvento(evento.start.dateTime);\n  \n  // Monta a string formatada para cancelamento\n  let eventoFormatado = `❌ EVENTO CANCELADO\\n\\n`;\n  eventoFormatado += `📅 ${summary}`;\n  \n  if (emailConvidado) {\n    eventoFormatado += `\\n👤 Cliente: ${emailConvidado}`;\n  }\n  \n  eventoFormatado += `\\n📆 Data: ${dataHora.data}`;\n  eventoFormatado += `\\n🕐 Horário: ${dataHora.horario}`;\n  eventoFormatado += `\\n⏰ ${tempoEvento}`;\n  \n  // Adiciona informações de quando foi cancelado\n  const cancelamento = new Date(evento.updated);\n  const cancelamentoFormatado = cancelamento.toLocaleString('pt-BR', {\n    timeZone: 'America/Sao_Paulo'\n  });\n  eventoFormatado += `\\n❌ Cancelado em: ${cancelamentoFormatado}`;\n  \n  return {\n    eventoFormatado: eventoFormatado,\n    tipoEvento: 'cancelamento',\n    summary: summary,\n    emailConvidado: emailConvidado,\n    data: dataHora.data,\n    horario: dataHora.horario,\n    horaInicio: dataHora.horaInicio,\n    horaFim: dataHora.horaFim,\n    dataCompleta: dataHora.dataCompleta,\n    tempoEvento: tempoEvento,\n    canceladoEm: cancelamentoFormatado,\n    sequencia: evento.sequence || 0\n  };\n}\n\n// Processa os dados do input\nconst eventos = $input.all();\nconst eventosFormatados = [];\n\nfor (const item of eventos) {\n  const evento = item.json;\n  \n  // Verifica se realmente é um cancelamento\n  if (evento.status === 'cancelled') {\n    const eventoProcessado = formatarEventoCancelado(evento);\n    \n    eventosFormatados.push({\n      json: {\n        ...evento, // Mantém os dados originais\n        eventoFormatado: eventoProcessado.eventoFormatado,\n        tipoEvento: eventoProcessado.tipoEvento,\n        summary: eventoProcessado.summary,\n        emailConvidado: eventoProcessado.emailConvidado,\n        data: eventoProcessado.data,\n        horario: eventoProcessado.horario,\n        horaInicio: eventoProcessado.horaInicio,\n        horaFim: eventoProcessado.horaFim,\n        dataCompleta: eventoProcessado.dataCompleta,\n        tempoEvento: eventoProcessado.tempoEvento,\n        canceladoEm: eventoProcessado.canceladoEm,\n        sequencia: eventoProcessado.sequencia\n      }\n    });\n  }\n}\n\nreturn eventosFormatados;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1616,
+        1024
+      ],
+      "id": "59c7db87-a436-46ee-9221-0d1abd187cbd",
+      "name": "Seta Cancelamento"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-nano"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -816,
+        1168
+      ],
+      "id": "40e81ed4-4722-4726-a8f1-5b1bc440ff12",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "LYZ43jB1xTisnjmj",
+          "name": "youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# {{ $('Seta Cancelamento').last().json.eventoFormatado }}\n\n### {{ $json.contextoCompleto }}",
+        "options": {
+          "systemMessage": "=# Prompt para IA - Aviso de Cancelamento de Agendamento\n\n## Sua Função\nVocê é um assistente especializado em criar mensagens de notificação para o dono do estabelecimento via WhatsApp sobre cancelamentos de agendamentos. Sua tarefa é informar sobre eventos que foram cancelados, destacando a urgência e o impacto no negócio.\n\n## Dados que Você Receberá\n\n### 1. DADOS DO EVENTO CANCELADO (em string natural):\n```\n❌ EVENTO CANCELADO\n\n📅 Consulta odontológica\n👤 Cliente: cliente@email.com\n📆 Data: 06/07/2025\n🕐 Horário: 13:30 às 14:30\n📋 Status: Cancelado\n⏰ Tempo até o evento: 2 hora(s)\n🚫 Cancelado em: 04/07/2025 11:15:30\n```\n\n### 2. HISTÓRICO DA CONVERSA (em string natural\n```\nCliente: Preciso cancelar meu atendimento de amanhã\nAgente: Claro! Posso ajudar com isso. Qual o motivo do cancelamento?\nCliente: Surgiu um imprevisto no trabalho\nAgente: Entendo. Vou cancelar seu horário das 13:30\nCliente: Obrigado. Posso reagendar para semana que vem?\n[resto da conversa sobre o cancelamento]\n```\n\n## Instruções para Criar a Mensagem\n\n### ✅ O QUE FAZER:\n1. **Analise o histórico** para entender o motivo do cancelamento\n2. **Destaque a urgência** se o cancelamento foi próximo ao horário agendado\n3. **Identifique se o cliente quer reagendar** ou se é cancelamento definitivo\n4. **Extraia informações do cliente** se disponíveis no histórico\n5. **Alerte sobre o impacto** no faturamento/agenda\n6. **Mantenha tom alerta mas profissional** para chamar atenção\n7. **Inclua emojis** para organizar e destacar informações importantes\n\n### ❌ O QUE NÃO FAZER:\n- Não seja dramático ou alarmista desnecessariamente\n- Não critique o cliente ou a situação\n- Não inclua detalhes técnicos sobre o cancelamento\n- Não faça mensagens muito longas\n- Não omita informações importantes sobre timing ou reagendamento\n\n## Estrutura da Mensagem\n\nSua mensagem deve seguir esta estrutura:\n\n```\n🚫 [Título do aviso de cancelamento]\n\n👤 [Informações do cliente]\n\n📋 [Motivo do cancelamento se identificado]\n\n📅 [Dados do agendamento cancelado]\n\n⚠️ [Alerta de urgência/impacto se necessário]\n\n[Observações sobre reagendamento/próximos passos]\n```\n\n## Exemplos de Mensagens\n\n### Exemplo 1 - Cancelamento com Reagendamento:\n```\n🚫 *CANCELAMENTO COM REAGENDAMENTO*\n\n👤 *Cliente:* Maria Silva\n\n📋 *Motivo:* Imprevisto no trabalho\n💬 *Situação:* Cliente quer reagendar para semana que vem\n\n📅 *Agendamento cancelado:*\n🗓️ Data: 06/07/2025\n🕐 Horário: 13:30 às 14:30\n🚫 Cancelado em: 04/07/2025 11:15\n\n⏰ *Cancelamento feito com 2 horas de antecedência*\n\n✅ *Cliente interessado em reagendar*\n```\n\n### Exemplo 2 - Cancelamento Urgente:\n```\n🚫 *CANCELAMENTO URGENTE - ÚLTIMA HORA*\n\n👤 *Cliente:* João Santos\n\n📋 *Motivo:* Emergência familiar\n💬 *Situação:* Cancelamento definitivo\n\n📅 *Agendamento cancelado:*\n🗓️ Data: 04/07/2025\n🕐 Horário: 16:00 às 17:00\n🚫 Cancelado em: 04/07/2025 15:30\n\n🚨 *ATENÇÃO: Cancelamento com apenas 30 minutos de antecedência!*\n\n❌ *Horário vago na agenda*\n```\n\n### Exemplo 3 - Cancelamento com Antecedência:\n```\n🚫 *AGENDAMENTO CANCELADO*\n\n👤 *Cliente:* Ana Costa\n\n📋 *Motivo:* Mudança de planos pessoais\n\n📅 *Agendamento cancelado:*\n🗓️ Data: 10/07/2025\n🕐 Horário: 09:00 às 10:00\n🚫 Cancelado em: 04/07/2025 14:20\n\n⏰ *Cancelamento feito com 6 dias de antecedência*\n\n📝 *Tempo suficiente para oferecer o horário a outros clientes*\n```\n\n### Exemplo 4 - Cancelamento Sem Motivo:\n```\n🚫 *CANCELAMENTO SEM JUSTIFICATIVA*\n\n👤 **Cliente:** Carlos Oliveira\n\n📋 *Motivo:* Não informado\n💬 *Situação:* Cliente apenas solicitou cancelamento\n\n📅 *Agendamento cancelado:*\n🗓️ Data: 05/07/2025\n🕐 Horário: 14:00 às 15:00\n🚫 Cancelado em: 04/07/2025 16:45\n\n⏰ *Cancelamento feito com 21 horas de antecedência*\n\n⚠️ *Considerar política de cancelamento*\n```\n\n## Diretrizes Específicas\n\n1. **Tom de Voz**: Alerta, informativo, profissional\n2. **Tamanho**: Máximo 8-10 linhas de texto\n3. **Prioridade**: Destacar timing e impacto no negócio\n4. **Urgência**: Alertar sobre cancelamentos de última hora\n5. **Organização**: Use emojis para separar seções claramente\n6. **Completude**: Inclua informações sobre reagendamento se disponível\n\n## Níveis de Urgência\n\n### 🚨 CRÍTICO (menos de 2 horas):\n- Use \"URGENTE\" ou \"ÚLTIMA HORA\" no título\n- Destaque o impacto no faturamento\n- Priorize informações sobre o horário vago\n\n### ⚠️ ALTO (menos de 24 horas):\n- Use \"ATENÇÃO\" no corpo da mensagem\n- Destaque que afeta a agenda do dia\n- Inclua tempo restante até o horário\n\n### 📋 NORMAL (mais de 24 horas):\n- Mantenha tom informativo padrão\n- Foque no motivo e possibilidade de reagendamento\n- Destaque oportunidade de oferecer horário a outros\n\n## Informações Importantes a Incluir\n\n1. **Timing do cancelamento** (quanto tempo antes do evento)\n2. **Motivo do cancelamento** (se identificado na conversa)\n3. **Intenção de reagendamento** (se o cliente demonstrou interesse)\n4. **Impacto na agenda** (horário vago, oportunidade para outros)\n5. **Dados do cliente** (para possível follow-up)\n\n## Prompt Final\n\nCom base no histórico da conversa e nos dados do evento cancelado, escreva uma mensagem de aviso para o dono do estabelecimento informando sobre o cancelamento. A mensagem deve ser:\n\n- Clara sobre o que foi cancelado e quando\n- Informativa sobre o motivo (se disponível)\n- Adequada ao nível de urgência do timing\n- Profissional e bem organizada\n- Incluir informações sobre reagendamento se aplicável\n- **Adaptada ao tipo de negócio** identificado no histórico da conversa\n\n**IMPORTANTE:** Identifique o tipo de negócio pelo contexto da conversa e adapte a linguagem adequadamente (ex: consulta/procedimento para área da saúde, atendimento/serviço para outras áreas, etc.).\n\n**Responda apenas com a mensagem final, sem explicações adicionais.**"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -704,
+        1024
+      ],
+      "id": "9aeccfd3-5b35-4897-b7df-78a8d8dbd4c2",
+      "name": "IA AVISA CANCELAMENTO"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.contextoCompleto }}",
+        "options": {
+          "systemMessage": "=# Prompt para IA - Pesquisa de Satisfação com Cliente\n\n## Sua Função\nVocê é um assistente especializado em coletar feedback de clientes via WhatsApp após o atendimento. Sua tarefa é conduzir uma pesquisa de satisfação de forma natural, amigável e eficiente, garantindo que o cliente se sinta valorizado e incentivado a dar feedback honesto.\n\n## Dados que Você Receberá\n\n### 1. DADOS DO ATENDIMENTO CONCLUÍDO:\n```\n{{ $json.eventoFormatado }}\n```\n\n### 2. CONTEXTO COMPLETO (dados do cliente + histórico):\n```\n{{ $json.contextoCompleto }}\n```\n\n### 3. TIPO DE NEGÓCIO:\n```\n{{ $json.tipoNegocio }}\n```\n\n### 4. INFORMAÇÕES DO CLIENTE:\n- Nome: {{ $json.nomeCliente }}\n- Telefone: {{ $json.numeroCliente }}\n- Atendimento: {{ $json.tituloEvento }}\n\n## Objetivos da Pesquisa\n\n### 🎯 **Objetivos Principais**\n1. **Coletar NPS** (Net Promoter Score) de 0 a 10\n2. **Identificar pontos de melhoria** no atendimento\n3. **Coletar elogios** para motivar a equipe\n4. **Incentivar retorno** do cliente\n5. **Demonstrar cuidado** com a experiência do cliente\n\n### 🎯 **Objetivos Secundários**\n- Identificar problemas que podem virar reclamações\n- Coletar sugestões de novos serviços\n- Fortalecer relacionamento com o cliente\n- Gerar conteúdo para marketing (com permissão)\n\n## Instruções para Conduzir a Pesquisa\n\n### ✅ **O QUE FAZER**\n1. **Inicie com agradecimento sincero** pelo atendimento\n2. **Personalize usando o nome** do cliente\n3. **Mencione o serviço específico** que foi realizado\n4. **Faça perguntas de forma natural** e conversacional\n5. **Seja genuinamente interessado** nas respostas\n6. **Adapte o tom ao tipo de negócio** (formal vs casual)\n7. **Encerre incentivando retorno** futuro\n\n### ❌ **O QUE NÃO FAZER**\n- Não seja robótico ou muito formal\n- Não faça muitas perguntas de uma vez\n- Não insista se o cliente não quiser responder\n- Não ignore feedback negativo\n- Não termine abruptamente a conversa\n- Não peça para dar nota alta\n\n## Estrutura da Conversa\n\n### 1. **Abertura Personalizada**\n```\nOlá [Nome]! Tudo bem? 😊\n\nEsperamos que seu [tipo de atendimento] tenha sido uma boa experiência!\n```\n\n### 2. **Pergunta Principal (NPS)**\n```\nQue tal nos ajudar com uma perguntinha rápida?\n\nDe 0 a 10, o quanto você recomendaria nosso atendimento para um amigo?\n```\n\n### 3. **Pergunta de Aprofundamento**\n```\n[Baseado na nota recebida]\n\n- Se 9-10: \"Que bom! O que mais te agradou?\"\n- Se 7-8: \"Obrigado! O que podemos melhorar?\"\n- Se 0-6: \"Que pena! Pode nos contar o que aconteceu?\"\n```\n\n### 4. **Encerramento Positivo**\n```\nMuito obrigado pelo seu feedback! 🙏\n\n[Resposta personalizada baseada no tipo de negócio]\n\nAté a próxima! 😊\n```\n\n## Exemplos de Conversas\n\n### Exemplo 1 - Área da Saúde (Consulta)\n```\nOlá Vitor! Tudo bem? 😊\n\nEsperamos que sua consulta odontológica hoje tenha sido tranquila e esclarecedora!\n\nQue tal nos ajudar com uma perguntinha rápida?\n\nDe 0 a 10, o quanto você recomendaria nosso atendimento para um amigo ou familiar?\n\n---\n\n[Se responder 9-10]\nQue alegria saber que você gostou! 🎉\n\nO que mais te agradou no atendimento de hoje?\n\nE já aproveitando, lembre-se de que em 6 meses é bom fazer uma nova avaliação! \n\nQualquer dúvida ou necessidade, estamos aqui! 🦷✨\n```\n\n### Exemplo 2 - Área da Beleza (Procedimento)\n```\nOi! Tudo bem? 😊\n\nEspero que tenha adorado o resultado do seu procedimento! ✨\n\nQue tal me contar numa escala de 0 a 10: quanto você recomendaria nosso trabalho?\n\n---\n\n[Se responder 7-8]\nObrigado pela avaliação! 😊\n\nO que podemos melhorar para chegar no 10 na próxima vez?\n\nLembre-se dos cuidados que orientamos e qualquer dúvida, pode chamar! \n\nAnsiosos para te ver novamente! 💅✨\n```\n\n### Exemplo 3 - Serviços Profissionais\n```\nOlá! Tudo bem?\n\nEsperamos que nossa reunião hoje tenha sido produtiva e esclarecedora!\n\nPode nos ajudar com um feedback rápido?\n\nDe 0 a 10, como você avalia nosso atendimento?\n\n---\n\n[Se responder 0-6]\nObrigado pela sinceridade! 😔\n\nPode nos contar o que não atendeu suas expectativas? Queremos melhorar!\n\nSe desejar, podemos agendar uma nova conversa para esclarecer mel"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        2256
+      ],
+      "id": "b317730f-aa6a-40c1-9195-e81f651ebcb7",
+      "name": "IA NPS"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/SUA_INSTANCIA/token/SEU_TOKEN/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "client-token"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "="
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.texto_formatado }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -64,
+        1024
+      ],
+      "id": "2cde276e-81aa-4b2c-8bbb-9eaa75feed6f",
+      "name": "Mensagem Cancelamento"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/SUA_INSTANCIA/token/SEU_TOKEN/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "client-token"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "="
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.texto_formatado }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -128,
+        1344
+      ],
+      "id": "19120aff-79b9-4fe6-826d-c50fff8f0fe4",
+      "name": "Mensagem Agendamento"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/SUA_INSTANCIA/token/SEU_TOKEN/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "client-token"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "="
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.texto_formatado }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -128,
+        1776
+      ],
+      "id": "b4bf0178-d3bd-4992-a7f9-9fe9db53f1e1",
+      "name": "Mensagem Atualização"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/SUA_INSTANCIA/token/SEU_TOKEN/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "client-token"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $('Busca Usuário NPS').last().json.cliente_numero }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.texto_formatado }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -16,
+        2256
+      ],
+      "id": "f636c6f0-5fa8-434e-b8e8-29eabe65b6bb",
+      "name": "Mensagem NPS"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- =====================================================\n-- SQL CORRIGIDO - USA O CAMPO \"ID\" DO EVENTO\n-- =====================================================\nSELECT \n    -- Dados do evento\n    '{{ $json.id }}' as evento_id,\n    \n    -- Dados do cliente\n    c.id as cliente_id,\n    c.\"Nome\" as cliente_nome,\n    c.numero as cliente_numero,\n    c.created_at as cliente_criado_em,\n    \n    -- Histórico de chat (últimas 10 mensagens)\n    (\n        SELECT JSON_AGG(\n            JSON_BUILD_OBJECT(\n                'id', n.id,\n                'session_id', n.session_id,\n                'message', n.message,\n                'created_at', n.created_at\n            ) ORDER BY n.created_at DESC\n        )\n        FROM (\n            SELECT * FROM n8n_chat_histories \n            WHERE session_id = '{{ $json.description }}'\n            ORDER BY created_at DESC \n            LIMIT 10\n        ) n\n    ) as historico_chat\n    \nFROM public.clientes_clinica c\nWHERE c.id = '{{ $json.description }}'::uuid\nLIMIT 1;\n\n-- =====================================================\n-- VERSÃO DE TESTE (PARA VERIFICAR SE A TABELA EXISTE)\n-- =====================================================\n/*\nSELECT \n    '{{ $json.id }}' as evento_id,\n    COUNT(*) as total_clientes\nFROM public.clientes_clinica;\n*/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1504,
+        2256
+      ],
+      "id": "9ee8cb14-5872-4acf-97bb-9b0d3a014db8",
+      "name": "Busca Usuário NPS",
+      "credentials": {
+        "postgres": {
+          "id": "ffurvj1Wcn2BTtNk",
+          "name": "Youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- =====================================================\n-- SQL CORRIGIDO - USA O CAMPO \"ID\" DO EVENTO\n-- =====================================================\nSELECT \n    -- Dados do evento\n    '{{ $json.id }}' as evento_id,\n    '{{ $json.summary }}' as evento_titulo,\n    \n    -- Dados do cliente\n    c.id as cliente_id,\n    c.\"Nome\" as cliente_nome,\n    c.numero as cliente_numero,\n    c.created_at as cliente_criado_em,\n    \n    -- Histórico de chat (últimas 10 mensagens)\n    (\n        SELECT JSON_AGG(\n            JSON_BUILD_OBJECT(\n                'id', n.id,\n                'session_id', n.session_id,\n                'message', n.message,\n                'created_at', n.created_at\n            ) ORDER BY n.created_at DESC\n        )\n        FROM (\n            SELECT * FROM n8n_chat_histories \n            WHERE session_id = '{{ $json.description }}'\n            ORDER BY created_at DESC \n            LIMIT 10\n        ) n\n    ) as historico_chat\n    \nFROM public.clientes_clinica c\nWHERE c.id = '{{ $json.description }}'::uuid\nLIMIT 1;\n\n-- =====================================================\n-- VERSÃO DE TESTE (PARA VERIFICAR SE A TABELA EXISTE)\n-- =====================================================\n/*\nSELECT \n    '{{ $json.id }}' as evento_id,\n    COUNT(*) as total_clientes\nFROM public.clientes_clinica;\n*/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1360,
+        1776
+      ],
+      "id": "5bdc38df-20d6-40bc-8893-1e2f762f9831",
+      "name": "Busca Usuário Atualização",
+      "credentials": {
+        "postgres": {
+          "id": "ffurvj1Wcn2BTtNk",
+          "name": "Youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- =====================================================\n-- SQL CORRIGIDO - USA O CAMPO \"ID\" DO EVENTO\n-- =====================================================\nSELECT \n    -- Dados do evento\n    '{{ $json.id }}' as evento_id,\n    '{{ $json.summary }}' as evento_titulo,\n    \n    -- Dados do cliente\n    c.id as cliente_id,\n    c.\"Nome\" as cliente_nome,\n    c.numero as cliente_numero,\n    c.created_at as cliente_criado_em,\n    \n    -- Histórico de chat (últimas 10 mensagens)\n    (\n        SELECT JSON_AGG(\n            JSON_BUILD_OBJECT(\n                'id', n.id,\n                'session_id', n.session_id,\n                'message', n.message,\n                'created_at', n.created_at\n            ) ORDER BY n.created_at DESC\n        )\n        FROM (\n            SELECT * FROM n8n_chat_histories \n            WHERE session_id = '{{ $json.description }}'\n            ORDER BY created_at DESC \n            LIMIT 10\n        ) n\n    ) as historico_chat\n    \nFROM public.clientes_clinica c\nWHERE c.id = '{{ $json.description }}'::uuid\nLIMIT 1;\n\n-- =====================================================\n-- VERSÃO DE TESTE (PARA VERIFICAR SE A TABELA EXISTE)\n-- =====================================================\n/*\nSELECT \n    '{{ $json.id }}' as evento_id,\n    COUNT(*) as total_clientes\nFROM public.clientes_clinica;\n*/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1408,
+        1344
+      ],
+      "id": "e140eb95-4a10-46f0-b21e-402b878ee9e4",
+      "name": "Busca Usuário Agendamento",
+      "credentials": {
+        "postgres": {
+          "id": "ffurvj1Wcn2BTtNk",
+          "name": "Youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- =====================================================\n-- SQL CORRIGIDO - USA O CAMPO \"ID\" DO EVENTO\n-- =====================================================\nSELECT \n    -- Dados do evento\n    '{{ $json.id }}' as evento_id,\n    '{{ $json.summary }}' as evento_titulo,\n    \n    -- Dados do cliente\n    c.id as cliente_id,\n    c.\"Nome\" as cliente_nome,\n    c.numero as cliente_numero,\n    c.created_at as cliente_criado_em,\n    \n    -- Histórico de chat (últimas 10 mensagens)\n    (\n        SELECT JSON_AGG(\n            JSON_BUILD_OBJECT(\n                'id', n.id,\n                'session_id', n.session_id,\n                'message', n.message,\n                'created_at', n.created_at\n            ) ORDER BY n.created_at DESC\n        )\n        FROM (\n            SELECT * FROM n8n_chat_histories \n            WHERE session_id = '{{ $json.description }}'\n            ORDER BY created_at DESC \n            LIMIT 10\n        ) n\n    ) as historico_chat\n    \nFROM public.clientes_clinica c\nWHERE c.id = '{{ $json.description }}'::uuid\nLIMIT 1;\n\n-- =====================================================\n-- VERSÃO DE TESTE (PARA VERIFICAR SE A TABELA EXISTE)\n-- =====================================================\n/*\nSELECT \n    '{{ $json.id }}' as evento_id,\n    COUNT(*) as total_clientes\nFROM public.clientes_clinica;\n*/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1360,
+        1024
+      ],
+      "id": "6ecfee25-9431-47f2-b0a4-5944fba7c4b7",
+      "name": "Busca Usuário Cancelamento",
+      "credentials": {
+        "postgres": {
+          "id": "ffurvj1Wcn2BTtNk",
+          "name": "Youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================\n// VERSÃO SIMPLIFICADA - FORMATAÇÃO DE HISTÓRICO\n// Use quando quiser algo mais direto e fácil de entender\n// =====================================================\n\n// Processa os dados do PostgreSQL\nconst dados = $input.all();\nconst resultados = [];\n\nfor (const item of dados) {\n  const dadosOriginais = item.json;\n  \n  // Extrai dados básicos\n  const clienteNome = dadosOriginais.cliente_nome || 'Nome não informado';\n  const clienteNumero = dadosOriginais.cliente_numero || 'Número não informado';\n  const eventoTitulo = dadosOriginais.evento_titulo || 'Evento sem título';\n  const historicoChat = dadosOriginais.historico_chat || [];\n  \n  // Formata o histórico de conversa\n  let conversaFormatada = '';\n  \n  if (historicoChat.length > 0) {\n    conversaFormatada = 'HISTÓRICO DA CONVERSA:\\n\\n';\n    \n    // Ordena mensagens por data (mais antigas primeiro)\n    const mensagensOrdenadas = historicoChat.sort((a, b) => {\n      return new Date(a.created_at) - new Date(b.created_at);\n    });\n    \n    // Formata cada mensagem\n    mensagensOrdenadas.forEach(msg => {\n      const tipo = msg.message?.type || 'desconhecido';\n      const conteudo = msg.message?.content || msg.message?.text || 'Mensagem sem conteúdo';\n      \n      // Define o remetente\n      let remetente = 'Desconhecido';\n      if (tipo === 'ai') remetente = 'Agente';\n      if (tipo === 'human') remetente = 'Cliente';\n      \n      // Preserva quebras de linha importantes, mas remove excessivas\n      const conteudoLimpo = conteudo\n        .replace(/\\n{3,}/g, '\\n\\n')  // Máximo 2 quebras consecutivas\n        .trim();\n      \n      conversaFormatada += `${remetente}: ${conteudoLimpo}\\n\\n`;\n    });\n    \n    conversaFormatada += '[Fim do histórico]';\n  } else {\n    conversaFormatada = 'Nenhuma conversa anterior encontrada.';\n  }\n  \n  // Detecta tipo de negócio (versão simplificada)\n  let tipoNegocio = 'geral';\n  const textoAnalise = `${eventoTitulo} ${conversaFormatada}`.toLowerCase();\n  \n  if (textoAnalise.includes('consulta') || textoAnalise.includes('médico') || textoAnalise.includes('dentista')) {\n    tipoNegocio = 'saude';\n  } else if (textoAnalise.includes('corte') || textoAnalise.includes('cabelo') || textoAnalise.includes('manicure')) {\n    tipoNegocio = 'beleza';\n  } else if (textoAnalise.includes('aula') || textoAnalise.includes('curso') || textoAnalise.includes('treinamento')) {\n    tipoNegocio = 'educacao';\n  } else if (textoAnalise.includes('reunião') || textoAnalise.includes('consultoria') || textoAnalise.includes('atendimento')) {\n    tipoNegocio = 'servicos';\n  }\n  \n  // Cria contexto completo\n  const contextoCompleto = `DADOS DO CLIENTE:\\n\\nNome: ${clienteNome}\\nNúmero: ${clienteNumero}\\n\\n${conversaFormatada}`;\n  \n  // Resultado final\n  resultados.push({\n    json: {\n      // Mantém dados originais\n      ...dadosOriginais,\n      \n      // Adiciona dados processados\n      contextoCompleto: contextoCompleto,\n      conversaFormatada: conversaFormatada,\n      tipoNegocio: tipoNegocio,\n      nomeCliente: clienteNome,\n      numeroCliente: clienteNumero,\n      tituloEvento: eventoTitulo,\n      totalMensagens: historicoChat.length,\n      temHistorico: historicoChat.length > 0\n    }\n  });\n}\n\nreturn resultados;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        1024
+      ],
+      "id": "fb2dcec5-dd1e-4dbf-87f6-f8922fe3c8df",
+      "name": "Histórico Cancelamento"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================\n// VERSÃO SIMPLIFICADA - FORMATAÇÃO DE HISTÓRICO\n// Use quando quiser algo mais direto e fácil de entender\n// =====================================================\n\n// Processa os dados do PostgreSQL\nconst dados = $input.all();\nconst resultados = [];\n\nfor (const item of dados) {\n  const dadosOriginais = item.json;\n  \n  // Extrai dados básicos\n  const clienteNome = dadosOriginais.cliente_nome || 'Nome não informado';\n  const clienteNumero = dadosOriginais.cliente_numero || 'Número não informado';\n  const eventoTitulo = dadosOriginais.evento_titulo || 'Evento sem título';\n  const historicoChat = dadosOriginais.historico_chat || [];\n  \n  // Formata o histórico de conversa\n  let conversaFormatada = '';\n  \n  if (historicoChat.length > 0) {\n    conversaFormatada = 'HISTÓRICO DA CONVERSA:\\n\\n';\n    \n    // Ordena mensagens por data (mais antigas primeiro)\n    const mensagensOrdenadas = historicoChat.sort((a, b) => {\n      return new Date(a.created_at) - new Date(b.created_at);\n    });\n    \n    // Formata cada mensagem\n    mensagensOrdenadas.forEach(msg => {\n      const tipo = msg.message?.type || 'desconhecido';\n      const conteudo = msg.message?.content || msg.message?.text || 'Mensagem sem conteúdo';\n      \n      // Define o remetente\n      let remetente = 'Desconhecido';\n      if (tipo === 'ai') remetente = 'Agente';\n      if (tipo === 'human') remetente = 'Cliente';\n      \n      // Preserva quebras de linha importantes, mas remove excessivas\n      const conteudoLimpo = conteudo\n        .replace(/\\n{3,}/g, '\\n\\n')  // Máximo 2 quebras consecutivas\n        .trim();\n      \n      conversaFormatada += `${remetente}: ${conteudoLimpo}\\n\\n`;\n    });\n    \n    conversaFormatada += '[Fim do histórico]';\n  } else {\n    conversaFormatada = 'Nenhuma conversa anterior encontrada.';\n  }\n  \n  // Detecta tipo de negócio (versão simplificada)\n  let tipoNegocio = 'geral';\n  const textoAnalise = `${eventoTitulo} ${conversaFormatada}`.toLowerCase();\n  \n  if (textoAnalise.includes('consulta') || textoAnalise.includes('médico') || textoAnalise.includes('dentista')) {\n    tipoNegocio = 'saude';\n  } else if (textoAnalise.includes('corte') || textoAnalise.includes('cabelo') || textoAnalise.includes('manicure')) {\n    tipoNegocio = 'beleza';\n  } else if (textoAnalise.includes('aula') || textoAnalise.includes('curso') || textoAnalise.includes('treinamento')) {\n    tipoNegocio = 'educacao';\n  } else if (textoAnalise.includes('reunião') || textoAnalise.includes('consultoria') || textoAnalise.includes('atendimento')) {\n    tipoNegocio = 'servicos';\n  }\n  \n  // Cria contexto completo\n  const contextoCompleto = `DADOS DO CLIENTE:\\n\\nNome: ${clienteNome}\\nNúmero: ${clienteNumero}\\n\\n${conversaFormatada}`;\n  \n  // Resultado final\n  resultados.push({\n    json: {\n      // Mantém dados originais\n      ...dadosOriginais,\n      \n      // Adiciona dados processados\n      contextoCompleto: contextoCompleto,\n      conversaFormatada: conversaFormatada,\n      tipoNegocio: tipoNegocio,\n      nomeCliente: clienteNome,\n      numeroCliente: clienteNumero,\n      tituloEvento: eventoTitulo,\n      totalMensagens: historicoChat.length,\n      temHistorico: historicoChat.length > 0\n    }\n  });\n}\n\nreturn resultados;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1024,
+        1776
+      ],
+      "id": "0c7d3d36-ca65-41ff-9a74-7d32223ccbda",
+      "name": "Histórico Atualização"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================\n// VERSÃO SIMPLIFICADA - FORMATAÇÃO DE HISTÓRICO\n// Use quando quiser algo mais direto e fácil de entender\n// =====================================================\n\n// Processa os dados do PostgreSQL\nconst dados = $input.all();\nconst resultados = [];\n\nfor (const item of dados) {\n  const dadosOriginais = item.json;\n  \n  // Extrai dados básicos\n  const clienteNome = dadosOriginais.cliente_nome || 'Nome não informado';\n  const clienteNumero = dadosOriginais.cliente_numero || 'Número não informado';\n  const eventoTitulo = dadosOriginais.evento_titulo || 'Evento sem título';\n  const historicoChat = dadosOriginais.historico_chat || [];\n  \n  // Formata o histórico de conversa\n  let conversaFormatada = '';\n  \n  if (historicoChat.length > 0) {\n    conversaFormatada = 'HISTÓRICO DA CONVERSA:\\n\\n';\n    \n    // Ordena mensagens por data (mais antigas primeiro)\n    const mensagensOrdenadas = historicoChat.sort((a, b) => {\n      return new Date(a.created_at) - new Date(b.created_at);\n    });\n    \n    // Formata cada mensagem\n    mensagensOrdenadas.forEach(msg => {\n      const tipo = msg.message?.type || 'desconhecido';\n      const conteudo = msg.message?.content || msg.message?.text || 'Mensagem sem conteúdo';\n      \n      // Define o remetente\n      let remetente = 'Desconhecido';\n      if (tipo === 'ai') remetente = 'Agente';\n      if (tipo === 'human') remetente = 'Cliente';\n      \n      // Preserva quebras de linha importantes, mas remove excessivas\n      const conteudoLimpo = conteudo\n        .replace(/\\n{3,}/g, '\\n\\n')  // Máximo 2 quebras consecutivas\n        .trim();\n      \n      conversaFormatada += `${remetente}: ${conteudoLimpo}\\n\\n`;\n    });\n    \n    conversaFormatada += '[Fim do histórico]';\n  } else {\n    conversaFormatada = 'Nenhuma conversa anterior encontrada.';\n  }\n  \n  // Detecta tipo de negócio (versão simplificada)\n  let tipoNegocio = 'geral';\n  const textoAnalise = `${eventoTitulo} ${conversaFormatada}`.toLowerCase();\n  \n  if (textoAnalise.includes('consulta') || textoAnalise.includes('médico') || textoAnalise.includes('dentista')) {\n    tipoNegocio = 'saude';\n  } else if (textoAnalise.includes('corte') || textoAnalise.includes('cabelo') || textoAnalise.includes('manicure')) {\n    tipoNegocio = 'beleza';\n  } else if (textoAnalise.includes('aula') || textoAnalise.includes('curso') || textoAnalise.includes('treinamento')) {\n    tipoNegocio = 'educacao';\n  } else if (textoAnalise.includes('reunião') || textoAnalise.includes('consultoria') || textoAnalise.includes('atendimento')) {\n    tipoNegocio = 'servicos';\n  }\n  \n  // Cria contexto completo\n  const contextoCompleto = `DADOS DO CLIENTE:\\n\\nNome: ${clienteNome}\\nNúmero: ${clienteNumero}\\n\\n${conversaFormatada}`;\n  \n  // Resultado final\n  resultados.push({\n    json: {\n      // Mantém dados originais\n      ...dadosOriginais,\n      \n      // Adiciona dados processados\n      contextoCompleto: contextoCompleto,\n      conversaFormatada: conversaFormatada,\n      tipoNegocio: tipoNegocio,\n      nomeCliente: clienteNome,\n      numeroCliente: clienteNumero,\n      tituloEvento: eventoTitulo,\n      totalMensagens: historicoChat.length,\n      temHistorico: historicoChat.length > 0\n    }\n  });\n}\n\nreturn resultados;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -928,
+        2256
+      ],
+      "id": "f9d0ab6d-455e-4b86-a0be-bb8790b2d536",
+      "name": "Histórico NPS"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================\n// VERSÃO SIMPLIFICADA - FORMATAÇÃO DE HISTÓRICO\n// Use quando quiser algo mais direto e fácil de entender\n// =====================================================\n\n// Processa os dados do PostgreSQL\nconst dados = $input.all();\nconst resultados = [];\n\nfor (const item of dados) {\n  const dadosOriginais = item.json;\n  \n  // Extrai dados básicos\n  const clienteNome = dadosOriginais.cliente_nome || 'Nome não informado';\n  const clienteNumero = dadosOriginais.cliente_numero || 'Número não informado';\n  const eventoTitulo = dadosOriginais.evento_titulo || 'Evento sem título';\n  const historicoChat = dadosOriginais.historico_chat || [];\n  \n  // Formata o histórico de conversa\n  let conversaFormatada = '';\n  \n  if (historicoChat.length > 0) {\n    conversaFormatada = 'HISTÓRICO DA CONVERSA:\\n\\n';\n    \n    // Ordena mensagens por data (mais antigas primeiro)\n    const mensagensOrdenadas = historicoChat.sort((a, b) => {\n      return new Date(a.created_at) - new Date(b.created_at);\n    });\n    \n    // Formata cada mensagem\n    mensagensOrdenadas.forEach(msg => {\n      const tipo = msg.message?.type || 'desconhecido';\n      const conteudo = msg.message?.content || msg.message?.text || 'Mensagem sem conteúdo';\n      \n      // Define o remetente\n      let remetente = 'Desconhecido';\n      if (tipo === 'ai') remetente = 'Agente';\n      if (tipo === 'human') remetente = 'Cliente';\n      \n      // Preserva quebras de linha importantes, mas remove excessivas\n      const conteudoLimpo = conteudo\n        .replace(/\\n{3,}/g, '\\n\\n')  // Máximo 2 quebras consecutivas\n        .trim();\n      \n      conversaFormatada += `${remetente}: ${conteudoLimpo}\\n\\n`;\n    });\n    \n    conversaFormatada += '[Fim do histórico]';\n  } else {\n    conversaFormatada = 'Nenhuma conversa anterior encontrada.';\n  }\n  \n  // Detecta tipo de negócio (versão simplificada)\n  let tipoNegocio = 'geral';\n  const textoAnalise = `${eventoTitulo} ${conversaFormatada}`.toLowerCase();\n  \n  if (textoAnalise.includes('consulta') || textoAnalise.includes('médico') || textoAnalise.includes('dentista')) {\n    tipoNegocio = 'saude';\n  } else if (textoAnalise.includes('corte') || textoAnalise.includes('cabelo') || textoAnalise.includes('manicure')) {\n    tipoNegocio = 'beleza';\n  } else if (textoAnalise.includes('aula') || textoAnalise.includes('curso') || textoAnalise.includes('treinamento')) {\n    tipoNegocio = 'educacao';\n  } else if (textoAnalise.includes('reunião') || textoAnalise.includes('consultoria') || textoAnalise.includes('atendimento')) {\n    tipoNegocio = 'servicos';\n  }\n  \n  // Cria contexto completo\n  const contextoCompleto = `DADOS DO CLIENTE:\\n\\nNome: ${clienteNome}\\nNúmero: ${clienteNumero}\\n\\n${conversaFormatada}`;\n  \n  // Resultado final\n  resultados.push({\n    json: {\n      // Mantém dados originais\n      ...dadosOriginais,\n      \n      // Adiciona dados processados\n      contextoCompleto: contextoCompleto,\n      conversaFormatada: conversaFormatada,\n      tipoNegocio: tipoNegocio,\n      nomeCliente: clienteNome,\n      numeroCliente: clienteNumero,\n      tituloEvento: eventoTitulo,\n      totalMensagens: historicoChat.length,\n      temHistorico: historicoChat.length > 0\n    }\n  });\n}\n\nreturn resultados;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1008,
+        1344
+      ],
+      "id": "48bd14ce-b39f-4c68-b34d-4203b1e8d7f2",
+      "name": "Histórico Agendamento"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-nano"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -704,
+        2496
+      ],
+      "id": "9303c0fb-0a3c-4fc4-8dcc-d24c23599610",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "LYZ43jB1xTisnjmj",
+          "name": "youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Código para nó Code - Formatação WhatsApp\n// Remove todas as # e ajusta negrito para padrão WhatsApp\n\n// DEBUG: Vamos ver o que está chegando\nconsole.log(\"=== DEBUG ESTRUTURA DE DADOS ===\");\nconsole.log(\"$input:\", JSON.stringify($input, null, 2));\n\n// Tenta diferentes formas de acessar os dados\nlet texto = \"\";\n\n// Opção 1: Estrutura padrão\nif ($input.item && $input.item.json) {\n    texto = $input.item.json.texto || \n            $input.item.json.message || \n            $input.item.json.content || \n            $input.item.json.body || \n            $input.item.json.output || \"\";\n}\n\n// Opção 2: Direto no item\nif (!texto && $input.item) {\n    texto = $input.item.texto || \n            $input.item.message || \n            $input.item.content || \n            $input.item.body || \n            $input.item.output || \"\";\n}\n\n// Opção 3: Primeiro item do array\nif (!texto && $input.first && $input.first()) {\n    const firstItem = $input.first();\n    texto = firstItem.json?.texto || \n            firstItem.json?.message || \n            firstItem.json?.content || \n            firstItem.json?.body || \n            firstItem.json?.output || \"\";\n}\n\n// Opção 4: Último item\nif (!texto && $input.last && $input.last()) {\n    const lastItem = $input.last();\n    texto = lastItem.json?.texto || \n            lastItem.json?.message || \n            lastItem.json?.content || \n            lastItem.json?.body || \n            lastItem.json?.output || \"\";\n}\n\nconsole.log(\"Texto encontrado:\", texto);\n\n// Função principal de formatação\nfunction formatarParaWhatsApp(texto) {\n    if (!texto || typeof texto !== 'string') {\n        console.log(\"Texto inválido ou vazio:\", texto);\n        return texto;\n    }\n    \n    let textoFormatado = texto;\n    \n    // 1. Remove TODAS as hashtags (#, ##, ###, etc.)\n    textoFormatado = textoFormatado.replace(/#{1,}/g, '');\n    \n    // 2. Converte ** (negrito markdown) para * (negrito WhatsApp)\n    textoFormatado = textoFormatado.replace(/\\*\\*/g, '*');\n    \n    return textoFormatado;\n}\n\n// Se ainda não encontrou texto, tenta como string direta\nif (!texto) {\n    texto = typeof $input === 'string' ? $input : '';\n}\n\nconsole.log(\"Texto final para processar:\", texto);\n\n// Aplica a formatação\nconst textoLimpo = formatarParaWhatsApp(texto);\n\nconsole.log(\"Texto após formatação:\", textoLimpo);\n\n// Retorna o resultado\nreturn [{\n    json: {\n        texto_original: texto || \"Texto não encontrado\",\n        texto_formatado: textoLimpo || \"Erro na formatação\",\n        debug_input: JSON.stringify($input, null, 2),\n        // Mantém outros campos que possam existir\n        ...($input.item?.json || {})\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        1024
+      ],
+      "id": "313d9e71-e959-4fdd-abf3-13c816a7c674",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Código para nó Code - Formatação WhatsApp\n// Remove todas as # e ajusta negrito para padrão WhatsApp\n\n// DEBUG: Vamos ver o que está chegando\nconsole.log(\"=== DEBUG ESTRUTURA DE DADOS ===\");\nconsole.log(\"$input:\", JSON.stringify($input, null, 2));\n\n// Tenta diferentes formas de acessar os dados\nlet texto = \"\";\n\n// Opção 1: Estrutura padrão\nif ($input.item && $input.item.json) {\n    texto = $input.item.json.texto || \n            $input.item.json.message || \n            $input.item.json.content || \n            $input.item.json.body || \n            $input.item.json.output || \"\";\n}\n\n// Opção 2: Direto no item\nif (!texto && $input.item) {\n    texto = $input.item.texto || \n            $input.item.message || \n            $input.item.content || \n            $input.item.body || \n            $input.item.output || \"\";\n}\n\n// Opção 3: Primeiro item do array\nif (!texto && $input.first && $input.first()) {\n    const firstItem = $input.first();\n    texto = firstItem.json?.texto || \n            firstItem.json?.message || \n            firstItem.json?.content || \n            firstItem.json?.body || \n            firstItem.json?.output || \"\";\n}\n\n// Opção 4: Último item\nif (!texto && $input.last && $input.last()) {\n    const lastItem = $input.last();\n    texto = lastItem.json?.texto || \n            lastItem.json?.message || \n            lastItem.json?.content || \n            lastItem.json?.body || \n            lastItem.json?.output || \"\";\n}\n\nconsole.log(\"Texto encontrado:\", texto);\n\n// Função principal de formatação\nfunction formatarParaWhatsApp(texto) {\n    if (!texto || typeof texto !== 'string') {\n        console.log(\"Texto inválido ou vazio:\", texto);\n        return texto;\n    }\n    \n    let textoFormatado = texto;\n    \n    // 1. Remove TODAS as hashtags (#, ##, ###, etc.)\n    textoFormatado = textoFormatado.replace(/#{1,}/g, '');\n    \n    // 2. Converte ** (negrito markdown) para * (negrito WhatsApp)\n    textoFormatado = textoFormatado.replace(/\\*\\*/g, '*');\n    \n    return textoFormatado;\n}\n\n// Se ainda não encontrou texto, tenta como string direta\nif (!texto) {\n    texto = typeof $input === 'string' ? $input : '';\n}\n\nconsole.log(\"Texto final para processar:\", texto);\n\n// Aplica a formatação\nconst textoLimpo = formatarParaWhatsApp(texto);\n\nconsole.log(\"Texto após formatação:\", textoLimpo);\n\n// Retorna o resultado\nreturn [{\n    json: {\n        texto_original: texto || \"Texto não encontrado\",\n        texto_formatado: textoLimpo || \"Erro na formatação\",\n        debug_input: JSON.stringify($input, null, 2),\n        // Mantém outros campos que possam existir\n        ...($input.item?.json || {})\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -368,
+        1776
+      ],
+      "id": "460dc1c3-4483-4583-af39-05d9bfb77fce",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Código para nó Code - Formatação WhatsApp\n// Remove todas as # e ajusta negrito para padrão WhatsApp\n\n// DEBUG: Vamos ver o que está chegando\nconsole.log(\"=== DEBUG ESTRUTURA DE DADOS ===\");\nconsole.log(\"$input:\", JSON.stringify($input, null, 2));\n\n// Tenta diferentes formas de acessar os dados\nlet texto = \"\";\n\n// Opção 1: Estrutura padrão\nif ($input.item && $input.item.json) {\n    texto = $input.item.json.texto || \n            $input.item.json.message || \n            $input.item.json.content || \n            $input.item.json.body || \n            $input.item.json.output || \"\";\n}\n\n// Opção 2: Direto no item\nif (!texto && $input.item) {\n    texto = $input.item.texto || \n            $input.item.message || \n            $input.item.content || \n            $input.item.body || \n            $input.item.output || \"\";\n}\n\n// Opção 3: Primeiro item do array\nif (!texto && $input.first && $input.first()) {\n    const firstItem = $input.first();\n    texto = firstItem.json?.texto || \n            firstItem.json?.message || \n            firstItem.json?.content || \n            firstItem.json?.body || \n            firstItem.json?.output || \"\";\n}\n\n// Opção 4: Último item\nif (!texto && $input.last && $input.last()) {\n    const lastItem = $input.last();\n    texto = lastItem.json?.texto || \n            lastItem.json?.message || \n            lastItem.json?.content || \n            lastItem.json?.body || \n            lastItem.json?.output || \"\";\n}\n\nconsole.log(\"Texto encontrado:\", texto);\n\n// Função principal de formatação\nfunction formatarParaWhatsApp(texto) {\n    if (!texto || typeof texto !== 'string') {\n        console.log(\"Texto inválido ou vazio:\", texto);\n        return texto;\n    }\n    \n    let textoFormatado = texto;\n    \n    // 1. Remove TODAS as hashtags (#, ##, ###, etc.)\n    textoFormatado = textoFormatado.replace(/#{1,}/g, '');\n    \n    // 2. Converte ** (negrito markdown) para * (negrito WhatsApp)\n    textoFormatado = textoFormatado.replace(/\\*\\*/g, '*');\n    \n    return textoFormatado;\n}\n\n// Se ainda não encontrou texto, tenta como string direta\nif (!texto) {\n    texto = typeof $input === 'string' ? $input : '';\n}\n\nconsole.log(\"Texto final para processar:\", texto);\n\n// Aplica a formatação\nconst textoLimpo = formatarParaWhatsApp(texto);\n\nconsole.log(\"Texto após formatação:\", textoLimpo);\n\n// Retorna o resultado\nreturn [{\n    json: {\n        texto_original: texto || \"Texto não encontrado\",\n        texto_formatado: textoLimpo || \"Erro na formatação\",\n        debug_input: JSON.stringify($input, null, 2),\n        // Mantém outros campos que possam existir\n        ...($input.item?.json || {})\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        1344
+      ],
+      "id": "347bf98c-face-4a6e-9259-da725a4ac7f2",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Código para nó Code - Formatação WhatsApp\n// Remove todas as # e ajusta negrito para padrão WhatsApp\n\n// DEBUG: Vamos ver o que está chegando\nconsole.log(\"=== DEBUG ESTRUTURA DE DADOS ===\");\nconsole.log(\"$input:\", JSON.stringify($input, null, 2));\n\n// Tenta diferentes formas de acessar os dados\nlet texto = \"\";\n\n// Opção 1: Estrutura padrão\nif ($input.item && $input.item.json) {\n    texto = $input.item.json.texto || \n            $input.item.json.message || \n            $input.item.json.content || \n            $input.item.json.body || \n            $input.item.json.output || \"\";\n}\n\n// Opção 2: Direto no item\nif (!texto && $input.item) {\n    texto = $input.item.texto || \n            $input.item.message || \n            $input.item.content || \n            $input.item.body || \n            $input.item.output || \"\";\n}\n\n// Opção 3: Primeiro item do array\nif (!texto && $input.first && $input.first()) {\n    const firstItem = $input.first();\n    texto = firstItem.json?.texto || \n            firstItem.json?.message || \n            firstItem.json?.content || \n            firstItem.json?.body || \n            firstItem.json?.output || \"\";\n}\n\n// Opção 4: Último item\nif (!texto && $input.last && $input.last()) {\n    const lastItem = $input.last();\n    texto = lastItem.json?.texto || \n            lastItem.json?.message || \n            lastItem.json?.content || \n            lastItem.json?.body || \n            lastItem.json?.output || \"\";\n}\n\nconsole.log(\"Texto encontrado:\", texto);\n\n// Função principal de formatação\nfunction formatarParaWhatsApp(texto) {\n    if (!texto || typeof texto !== 'string') {\n        console.log(\"Texto inválido ou vazio:\", texto);\n        return texto;\n    }\n    \n    let textoFormatado = texto;\n    \n    // 1. Remove TODAS as hashtags (#, ##, ###, etc.)\n    textoFormatado = textoFormatado.replace(/#{1,}/g, '');\n    \n    // 2. Converte ** (negrito markdown) para * (negrito WhatsApp)\n    textoFormatado = textoFormatado.replace(/\\*\\*/g, '*');\n    \n    return textoFormatado;\n}\n\n// Se ainda não encontrou texto, tenta como string direta\nif (!texto) {\n    texto = typeof $input === 'string' ? $input : '';\n}\n\nconsole.log(\"Texto final para processar:\", texto);\n\n// Aplica a formatação\nconst textoLimpo = formatarParaWhatsApp(texto);\n\nconsole.log(\"Texto após formatação:\", textoLimpo);\n\n// Retorna o resultado\nreturn [{\n    json: {\n        texto_original: texto || \"Texto não encontrado\",\n        texto_formatado: textoLimpo || \"Erro na formatação\",\n        debug_input: JSON.stringify($input, null, 2),\n        // Mantém outros campos que possam existir\n        ...($input.item?.json || {})\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        2256
+      ],
+      "id": "ba35a4ac-16b7-41a9-bbdf-9c6b2d4f2872",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "calendarId": {
+          "__rl": true,
+          "value": "vitorcardosolido@gmail.com",
+          "mode": "list",
+          "cachedResultName": "vitorcardosolido@gmail.com"
+        },
+        "triggerOn": "eventEnded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1808,
+        2256
+      ],
+      "id": "3459e2bf-8a00-4a32-93cb-d47cf46647ee",
+      "name": "NPS1",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "vKtajF8ftpbBh1dD",
+          "name": "youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-nano"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -976,
+        2048
+      ],
+      "id": "51529497-c76a-4cb3-9b84-c07aac3d3ce8",
+      "name": "OpenAI Chat Model4",
+      "credentials": {
+        "openAiApi": {
+          "id": "LYZ43jB1xTisnjmj",
+          "name": "youtube"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Busca Usuário NPS').last().json.cliente_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -576,
+        2464
+      ],
+      "id": "257bc686-391f-4406-95e2-70af4f50233f",
+      "name": "Postgres Chat Memory1",
+      "credentials": {
+        "postgres": {
+          "id": "ffurvj1Wcn2BTtNk",
+          "name": "Youtube teste"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Cria tabela clientes\n\n````\ncreate table public.clientes_clinica (\n  \"Nome\" text null,\n  numero text null,\n  created_at timestamp with time zone not null default (now() AT TIME ZONE 'America/Sao_Paulo'::text),\n  id uuid not null default gen_random_uuid (),\n  nota_nps numeric null,\n  clinica_id uuid not null,\n  user_id uuid null,\n  constraint clientes_clinica_youtube_pkey primary key (id),\n  constraint clientes_clinica_user_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE,\n  constraint clientes_clinica_youtube_clinica_id_fkey foreign KEY (clinica_id) references usuarios (id)\n) TABLESPACE pg_default;\n\ncreate index IF not exists idx_clientes_clinica on public.clientes_clinica using btree (clinica_id) TABLESPACE pg_default;\n````\n\n# Cria tabela de memoria\n\n````\ncreate table public.n8n_chat_histories (\n  id serial not null,\n  session_id character varying(255) not null,\n  message jsonb not null,\n  created_at timestamp with time zone null default now(),\n  constraint n8n_chat_histories_pkey primary key (id)\n) TABLESPACE pg_default;\n````\n\n# Cria tabela de produtos\n\n````\ncreate table public.produtos_clinicas (\n  id uuid not null default gen_random_uuid (),\n  nome_procedimento text null,\n  preço text null,\n  \"Tempo\" text null,\n  clinica_id uuid not null,\n  user_id uuid null,\n  constraint Produtos_agenda_escalavel_pkey primary key (id),\n  constraint Produtos_agenda_escalavel_clinica_id_fkey foreign KEY (clinica_id) references usuarios (id),\n  constraint produtos_clinicas_user_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE\n) TABLESPACE pg_default;\n\ncreate index IF not exists idx_produtos_clinica on public.produtos_clinicas using btree (clinica_id) TABLESPACE pg_default;\n````",
+        "height": 1264,
+        "width": 1168
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        496,
+        1056
+      ],
+      "typeVersion": 1,
+      "id": "58489ea6-fd55-4e80-916c-d64653476871",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "primary-production-53052.up.railway.app",
+            "user-agent": "Mozilla/5.0 (iPod touch; CPU iPhone OS 13_2_1 like Mac OS X) AppleWebKit/604.5.6 (KHTML, like Gecko) FxiOS/111.0 Mobile/15E148 Safari/605.1.15",
+            "content-length": "796",
+            "content-type": "application/json",
+            "origin": "https://api.z-api.io",
+            "server": "Z-API",
+            "x-forwarded-for": "146.235.42.234",
+            "x-forwarded-host": "primary-production-53052.up.railway.app",
+            "x-forwarded-proto": "https",
+            "x-railway-edge": "railway/us-east4-eqdc4a",
+            "x-railway-request-id": "KVD_792PRV-b_i3fAax-fw",
+            "x-real-ip": "146.235.42.234",
+            "x-request-start": "1751722910621",
+            "z-api-token": "A9DD8674F5CA43F822A7565A",
+            "accept-encoding": "gzip"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "isStatusReply": false,
+            "chatLid": "105231211860127@lid",
+            "connectedPhone": "555195674028",
+            "waitingMessage": false,
+            "isEdit": false,
+            "isGroup": false,
+            "isNewsletter": false,
+            "instanceId": "3E1582B8C1EFB00BF098BAA23289AB67",
+            "messageId": "3F7C4021E67DB4B808C5",
+            "phone": "555198222005",
+            "fromMe": false,
+            "momment": 1751722909000,
+            "status": "RECEIVED",
+            "chatName": "Vitor Cardoso",
+            "senderPhoto": null,
+            "senderName": "Vitor Cardoso",
+            "photo": "https://pps.whatsapp.net/v/t61.24694-24/436952688_823759469819243_1917532092669313342_n.jpg?ccb=11-4&oh=01_Q5Aa1wG-9T5a4l7muMmqwQqgCLfBK2qTIemf0zN_36i7dovgeA&oe=6876474A&_nc_sid=5e03e0&_nc_cat=111",
+            "broadcast": false,
+            "participantLid": null,
+            "messageExpirationSeconds": 0,
+            "forwarded": false,
+            "type": "ReceivedCallback",
+            "fromApi": false,
+            "text": {
+              "message": "Bom dia, agende uma consulta inicial para hoje as 10 por favor"
+            }
+          },
+          "webhookUrl": "https://primary-production-53052.up.railway.app/webhook/61cfae58-b041-4717-8b23-65c372a72aab",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "Seta Mudança": [
+      {
+        "json": {
+          "kind": "calendar#event",
+          "etag": "\"3503333910044190\"",
+          "id": "39084358",
+          "status": "confirmed",
+          "htmlLink": "https://www.google.com/calendar/event?eid=N2MybHZlNGpnNWI0Mm1zcDViYW9lZTM2ZDcgZWR1YXJkb3NvbGlkb2FpQG0",
+          "created": "2025-07-04T22:09:14.000Z",
+          "updated": "2025-07-04T22:09:15.022Z",
+          "summary": "Teste",
+          "creator": {
+            "email": "eduardosolidoai@gmail.com",
+            "self": true
+          },
+          "organizer": {
+            "email": "eduardosolidoai@gmail.com",
+            "self": true
+          },
+          "start": {
+            "dateTime": "2025-07-06T13:30:00-03:00",
+            "timeZone": "America/Sao_Paulo"
+          },
+          "end": {
+            "dateTime": "2025-07-06T14:30:00-03:00",
+            "timeZone": "America/Sao_Paulo"
+          },
+          "iCalUID": "7c2lve4jg5b42msp5baoee36d7@google.com",
+          "sequence": 0,
+          "reminders": {
+            "useDefault": true
+          },
+          "eventType": "default",
+          "eventoFormatado": "🔄 EVENTO ATUALIZADO\n\n📅 Teste\n📆 Data: 06/07/2025\n🕐 Horário: 16:30 às 17:30\n📋 Status: Confirmado\n⏰ Tempo restante: 1 dia(s)\n🔄 Atualizado em: 04/07/2025, 19:09:15",
+          "tipoEvento": "atualização",
+          "emailConvidado": null,
+          "data": "06/07/2025",
+          "horario": "16:30 às 17:30",
+          "horaInicio": "16:30",
+          "horaFim": "17:30",
+          "dataCompleta": "domingo, 6 de julho de 2025 às 13:30",
+          "statusEvento": "Confirmado",
+          "tempoRestante": "1 dia(s)",
+          "ultimaAtualizacao": "04/07/2025, 19:09:15",
+          "sequencia": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "deletar_agenda": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "criar_agenda": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "formataçãoTexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responde usuário": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "GET Supabase User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Supabase User": {
+      "main": [
+        [
+          {
+            "node": "IF User Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF User Exists": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Supabase User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Supabase User": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI2": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso de Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso contra vídeo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso contra doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso contra vídeo": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Aviso contra doc": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Redis3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audio": {
+      "main": [
+        [
+          {
+            "node": "OpenAI2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensagem": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Aviso de Imagem": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Redis3": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis4": {
+      "main": [
+        [
+          {
+            "node": "Junta tudo em uma só e deleta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "Redis4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis": {
+      "main": [
+        [
+          {
+            "node": "Busca Produtos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Contabilizar Caracteres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contabilizar Caracteres": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Responde usuário",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "formataçãoTexto": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "busca_agenda": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "atualizar_agenda": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NPS": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Procedimentos": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Busca Produtos": {
+      "main": [
+        [
+          {
+            "node": "Parse Procedimentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Junta tudo em uma só e deleta": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisa  Cancelamento": {
+      "main": [
+        [
+          {
+            "node": "Seta Cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisa Agendamento": {
+      "main": [
+        [
+          {
+            "node": "Seta Agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisa Mudança": {
+      "main": [
+        [
+          {
+            "node": "Seta Mudança",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA AVISO  ATUALIZAÇÃO": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA AVISO AGENDAMENTO": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "IA AVISO AGENDAMENTO",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Seta Mudança": {
+      "main": [
+        [
+          {
+            "node": "Busca Usuário Atualização",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Seta Agendamento": {
+      "main": [
+        [
+          {
+            "node": "Busca Usuário Agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Seta Cancelamento": {
+      "main": [
+        [
+          {
+            "node": "Busca Usuário Cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "IA AVISA CANCELAMENTO",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA AVISA CANCELAMENTO": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA NPS": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Busca Usuário NPS": {
+      "main": [
+        [
+          {
+            "node": "Histórico NPS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Busca Usuário Atualização": {
+      "main": [
+        [
+          {
+            "node": "Histórico Atualização",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Busca Usuário Agendamento": {
+      "main": [
+        [
+          {
+            "node": "Histórico Agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Busca Usuário Cancelamento": {
+      "main": [
+        [
+          {
+            "node": "Histórico Cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Histórico Cancelamento": {
+      "main": [
+        [
+          {
+            "node": "IA AVISA CANCELAMENTO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Histórico Atualização": {
+      "main": [
+        [
+          {
+            "node": "IA AVISO  ATUALIZAÇÃO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Histórico NPS": {
+      "main": [
+        [
+          {
+            "node": "IA NPS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Histórico Agendamento": {
+      "main": [
+        [
+          {
+            "node": "IA AVISO AGENDAMENTO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "IA NPS",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Mensagem Cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Mensagem Atualização",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Mensagem Agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "Mensagem NPS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NPS1": {
+      "main": [
+        [
+          {
+            "node": "Busca Usuário NPS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "IA AVISO  ATUALIZAÇÃO",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "IA NPS",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f6c55c57-fdb8-4da3-bdb2-16ec248c3cc8",
+  "meta": {
+    "instanceId": "9dc82ef6f13c99b5c676a97615c1eb196eff186a870f045f2d398e839f766ca2"
+  },
+  "id": "RFbwdHScNRW9ow7J",
+  "tags": []
+}
